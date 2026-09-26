@@ -128,10 +128,11 @@
       return;
     }
 
+    const durasiRaw = getRadioValue('durasi') || 'auto';
     const opts = {
       judul: judul,
       format: getRadioValue('format') || 'Long',
-      durasi: parseInt(getRadioValue('durasi') || '1', 10),
+      durasi: durasiRaw === 'auto' ? 'auto' : parseInt(durasiRaw, 10),
       genre: els.genre.value,
       style: getRadioValue('style') || 'Realistis',
       konteks: els.konteks.value.trim()
@@ -150,8 +151,12 @@
       setProgress(5, 'Meriset cerita dan menyusun kronologi...');
 
       const scenes = await DeepSeek.generateStoryboard(opts, (info) => {
-        const pct = 10 + (info.batch / info.totalBatches) * 40;
-        setProgress(pct, `Batch ${info.batch}/${info.totalBatches} — scene ${info.startScene}-${info.endScene}...`);
+        if (info.isAuto) {
+          setProgress(30, 'AI meriset & menyusun storyboard (mode Auto)...');
+        } else {
+          const pct = 10 + (info.batch / info.totalBatches) * 40;
+          setProgress(pct, `Batch ${info.batch}/${info.totalBatches} — scene ${info.startScene}-${info.endScene}...`);
+        }
       });
 
       if (state.abortGenerate) throw new Error('Dibatalkan oleh user');
@@ -232,10 +237,26 @@
   });
 
   // ============ RENDER STORYBOARD ============
+  function formatDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    if (m === 0) return s + 's';
+    if (s === 0) return m + 'm';
+    return m + 'm ' + s + 's';
+  }
+
   function renderStoryboard(project) {
     els.sbJudul.textContent = project.judul;
-    const durasiLabel = project.durasi + ' menit';
     const sceneCount = project.scenes.length;
+    const lastScene = project.scenes[sceneCount - 1];
+    const totalSec = lastScene ? lastScene.end : 0;
+
+    let durasiLabel;
+    if (project.durasi === 'auto') {
+      durasiLabel = 'Auto (~' + formatDuration(totalSec) + ')';
+    } else {
+      durasiLabel = project.durasi + ' menit';
+    }
     els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene`;
 
     els.sceneList.innerHTML = '';
@@ -251,16 +272,71 @@
 
     const startStr = secToTimestamp(scene.start);
     const endStr = secToTimestamp(scene.end);
-    const keywords = (scene.keyword_video || []).map(k =>
-      `<span class="keyword">${escapeHtml(k)}</span>`
-    ).join('');
+    const dur = scene.durasi_ideal || 5;
+
+    const babakBadge = scene.babak
+      ? `<span class="scene-babak">${escapeHtml(scene.babak.toUpperCase())}</span>`
+      : '';
+
+    const piBadge = scene.pattern_interrupt
+      ? '<span class="scene-badge-pi" title="Pattern interrupt">⚡</span>'
+      : '';
 
     const imgUrl = scene.ai_image_url || '';
     const imgTag = imgUrl
       ? `<img class="scene-img" src="${escapeHtml(imgUrl)}" alt="Scene ${scene.scene}" loading="lazy" onerror="this.style.background='#e2e8f0';this.alt='Gagal memuat gambar';">`
-      : `<div class="scene-img" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;">Tidak ada gambar</div>`;
+      : '<div class="scene-img" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;">Tidak ada gambar</div>';
 
-    // Preview media dari Pexels/Pixabay
+    // Section: onscreen_text
+    const onscreenHtml = scene.onscreen_text
+      ? `<div class="scene-onscreen">📺 <strong>Onscreen:</strong> ${escapeHtml(scene.onscreen_text)}</div>`
+      : '';
+
+    // Section: sensory
+    const sensoryHtml = scene.sensory_detail
+      ? `<div class="scene-row"><span class="row-label">👁️ Sensorik:</span> ${escapeHtml(scene.sensory_detail)}</div>`
+      : '';
+
+    // Section: analogy
+    const analogyHtml = (scene.analogy && scene.analogy !== '-')
+      ? `<div class="scene-row"><span class="row-label">💡 Analogi:</span> ${escapeHtml(scene.analogy)}</div>`
+      : '';
+
+    // Section: open_loop / cliffhanger
+    let teaseHtml = '';
+    if (scene.open_loop && scene.open_loop !== '-') {
+      teaseHtml += `<div class="scene-row scene-openloop"><span class="row-label">🔗 Open Loop:</span> ${escapeHtml(scene.open_loop)}</div>`;
+    }
+    if (scene.cliffhanger && scene.cliffhanger !== '-') {
+      teaseHtml += `<div class="scene-row scene-cliffhanger"><span class="row-label">⏸️ Cliffhanger:</span> ${escapeHtml(scene.cliffhanger)}</div>`;
+    }
+
+    // Section: broll
+    const brollHtml = (scene.broll && scene.broll.length)
+      ? `<div class="scene-broll"><div class="broll-label">🎞️ B-Roll:</div><ul class="broll-list">${scene.broll.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul></div>`
+      : '';
+
+    // Section: fakta kunci
+    const faktaHtml = (scene.fakta_kunci && scene.fakta_kunci !== '-')
+      ? `<div class="scene-fakta"><span class="fakta-label">🔍 Fakta Kunci:</span> ${escapeHtml(scene.fakta_kunci)} <span class="fakta-sumber">(${escapeHtml(scene.sumber_hint || '-')})</span></div>`
+      : '';
+
+    // Section: production cues
+    const cuesHtml = `
+      <div class="scene-cues">
+        <span class="cue" title="Mood">🎭 ${escapeHtml(scene.mood || '-')}</span>
+        <span class="cue" title="SFX">🔊 ${escapeHtml(scene.sfx || '-')}</span>
+        <span class="cue" title="Transisi">🎬 ${escapeHtml(scene.transisi || 'cut to')}</span>
+        <span class="cue" title="Durasi">⏱️ ${dur}s</span>
+      </div>
+    `;
+
+    // Keywords
+    const keywords = (scene.keyword_video || []).map(k =>
+      `<span class="keyword">${escapeHtml(k)}</span>`
+    ).join('');
+
+    // Media preview
     const videoUrls = scene.video_urls || [];
     let mediaPreview = '';
     if (videoUrls.length) {
@@ -279,19 +355,30 @@
         </div>
       `;
     } else {
-      mediaPreview = `<div class="scene-media-empty">Tidak ada media ditemukan</div>`;
+      mediaPreview = '<div class="scene-media-empty">Tidak ada media ditemukan</div>';
     }
 
     card.innerHTML = `
       <div class="scene-header">
-        <span class="scene-num">Scene ${scene.scene}</span>
+        <div class="scene-header-left">
+          <span class="scene-num">Scene ${scene.scene}</span>
+          ${babakBadge}
+          ${piBadge}
+        </div>
         <span class="scene-time">${startStr} - ${endStr}</span>
       </div>
       <div class="scene-body">
         ${imgTag}
         <div class="scene-narasi">${escapeHtml(scene.narasi)}</div>
+        ${onscreenHtml}
         <div class="scene-meta"><strong>Visual:</strong> ${escapeHtml(scene.visual)}</div>
         <div class="scene-meta"><strong>Tokoh:</strong> ${escapeHtml(scene.tokoh)} · <strong>Emosi:</strong> ${escapeHtml(scene.emosi)}</div>
+        ${sensoryHtml}
+        ${analogyHtml}
+        ${teaseHtml}
+        ${brollHtml}
+        ${cuesHtml}
+        ${faktaHtml}
         <div class="scene-keywords">${keywords}</div>
         ${mediaPreview}
         <div class="scene-actions">
@@ -302,7 +389,6 @@
       </div>
     `;
 
-    // Event delegation
     card.addEventListener('click', (e) => {
       const actBtn = e.target.closest('[data-act]');
       if (actBtn) {

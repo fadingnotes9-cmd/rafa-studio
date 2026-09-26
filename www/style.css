@@ -447,3 +447,111 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
   margin-top: 10px;
   font-style: italic;
 }
+
+/* ==================== SCENE CARD v2 (Layer 1-4) ==================== */
+.scene-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scene-babak {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary);
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.scene-badge-pi {
+  font-size: 14px;
+  cursor: help;
+}
+.scene-onscreen {
+  padding: 8px 12px;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: #78350f;
+}
+.scene-row {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  color: var(--text);
+}
+.scene-row .row-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+.scene-openloop {
+  background: #dbeafe;
+  border-left: 3px solid var(--primary);
+}
+.scene-cliffhanger {
+  background: #fce7f3;
+  border-left: 3px solid #db2777;
+}
+.scene-broll {
+  padding: 10px 12px;
+  background: #f0fdf4;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.broll-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 6px;
+}
+.broll-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.broll-list li {
+  font-size: 13px;
+  padding: 3px 0 3px 16px;
+  position: relative;
+  color: #14532d;
+}
+.broll-list li::before {
+  content: "▸";
+  position: absolute;
+  left: 4px;
+  color: #16a34a;
+}
+.scene-cues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.cue {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.scene-fakta {
+  padding: 8px 12px;
+  background: #fee2e2;
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 10px;
+  color: #7f1d1d;
+}
+.fakta-label { font-weight: 700; }
+.fakta-sumber { color: #991b1b; font-style: italic; }
