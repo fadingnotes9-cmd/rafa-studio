@@ -2,8 +2,6 @@
 node_modules/
 
 # Capacitor build
-android/
-ios/
 .gradle/
 build/
 

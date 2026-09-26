@@ -1,0 +1,11 @@
+{
+  "appId": "com.fadingnotes9.rafastudio",
+  "appName": "Rafa Studio",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
