@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2563eb">
+<title>Rafa Studio — AI Storyboard Generator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <h1>🎬 Rafa Studio</h1>
+    <p class="header-sub">AI Storyboard Generator untuk YouTube</p>
+  </div>
+</header>
+
+<nav class="app-nav">
+  <button class="nav-btn active" data-page="input">📝 Buat</button>
+  <button class="nav-btn" data-page="projects">📁 Project</button>
+  <button class="nav-btn" data-page="settings">⚙️ Settings</button>
+</nav>
+
+<main class="app-main">
+
+<!-- ============ PAGE 1: INPUT FORM ============ -->
+<section id="page-input" class="page active">
+  <div class="card">
+    <h2 class="card-title">Buat Storyboard Baru</h2>
+    <form id="generate-form">
+
+      <div class="field">
+        <label for="judul">Judul Video <span class="req">*</span></label>
+        <input type="text" id="judul" placeholder="Contoh: Perang Badar" required autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label>Format</label>
+        <div class="radio-group">
+          <label class="radio"><input type="radio" name="format" value="Long" checked><span>Long (16:9)</span></label>
+          <label class="radio"><input type="radio" name="format" value="Shorts"><span>Shorts (9:16)</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Durasi</label>
+        <div class="radio-group">
+          <label class="radio"><input type="radio" name="durasi" value="1" checked><span>1 menit</span></label>
+          <label class="radio"><input type="radio" name="durasi" value="5"><span>5 menit</span></label>
+          <label class="radio"><input type="radio" name="durasi" value="10"><span>10 menit</span></label>
+          <label class="radio"><input type="radio" name="durasi" value="20"><span>20 menit</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="genre">Genre</label>
+        <select id="genre">
+          <option value="Sejarah" selected>Sejarah</option>
+          <option value="Agama">Agama</option>
+          <option value="Sains">Sains</option>
+          <option value="Politik">Politik</option>
+          <option value="Ekonomi">Ekonomi</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Style Gambar AI</label>
+        <div class="radio-group vertical">
+          <label class="radio"><input type="radio" name="style" value="Realistis" checked><span>Realistis (cinematic, photorealistic)</span></label>
+          <label class="radio"><input type="radio" name="style" value="Ilustrasi"><span>Ilustrasi (digital, vibrant)</span></label>
+          <label class="radio"><input type="radio" name="style" value="Sketsa"><span>Sketsa (pencil, hand-drawn)</span></label>
+          <label class="radio"><input type="radio" name="style" value="Anime"><span>Anime (studio ghibli style)</span></label>
+          <label class="radio"><input type="radio" name="style" value="Watercolor"><span>Watercolor (soft brush)</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="konteks">Konteks Tambahan <small>(opsional)</small></label>
+        <textarea id="konteks" rows="3" placeholder="Contoh: ceritakan dari sudut pandang anak-anak"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-large" id="btn-generate">🚀 Generate Storyboard</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ PAGE 2: PROGRESS ============ -->
+<section id="page-progress" class="page">
+  <div class="card progress-card">
+    <div class="spinner"></div>
+    <h2 class="progress-title">Sedang Membuat Storyboard...</h2>
+    <p class="progress-sub" id="progress-sub">Mohon tunggu, ini bisa memakan 1-2 menit</p>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="progress-pct" id="progress-pct">0%</div>
+
+    <ul class="step-list" id="step-list">
+      <li class="step" data-step="1">
+        <span class="step-icon">○</span>
+        <span class="step-text">Meriset cerita... (DeepSeek)</span>
+      </li>
+      <li class="step" data-step="2">
+        <span class="step-icon">○</span>
+        <span class="step-text">Membuat scene...</span>
+      </li>
+      <li class="step" data-step="3">
+        <span class="step-icon">○</span>
+        <span class="step-text">Mencari media visual... (Pexels/Pixabay)</span>
+      </li>
+      <li class="step" data-step="4">
+        <span class="step-icon">○</span>
+        <span class="step-text">Menggenerate gambar AI... (Pollinations)</span>
+      </li>
+      <li class="step" data-step="5">
+        <span class="step-icon">○</span>
+        <span class="step-text">Selesai!</span>
+      </li>
+    </ul>
+
+    <button class="btn btn-secondary btn-cancel" id="btn-cancel">Batal</button>
+  </div>
+</section>
+
+<!-- ============ PAGE 3: STORYBOARD ============ -->
+<section id="page-storyboard" class="page">
+  <div class="storyboard-header card">
+    <div>
+      <h2 id="sb-judul">—</h2>
+      <p class="sb-meta" id="sb-meta">—</p>
+    </div>
+    <button class="btn btn-secondary btn-small" id="btn-back-input">← Buat Baru</button>
+  </div>
+
+  <div id="scene-list" class="scene-list">
+    <!-- Scene cards di-render via JS -->
+  </div>
+
+  <div class="floating-actions">
+    <button class="fab fab-secondary" id="btn-save-project" title="Simpan">💾</button>
+    <button class="fab fab-primary" id="btn-export" title="Export">📤</button>
+  </div>
+</section>
+
+<!-- ============ PAGE 4: PROJECTS ============ -->
+<section id="page-projects" class="page">
+  <div class="card">
+    <div class="card-header-row">
+      <h2 class="card-title">📁 Project Tersimpan</h2>
+      <button class="btn btn-secondary btn-small" id="btn-refresh-projects">🔄</button>
+    </div>
+    <div id="projects-list" class="projects-list">
+      <!-- Di-render via JS -->
+    </div>
+    <p class="empty-hint" id="projects-empty">Belum ada project tersimpan.</p>
+  </div>
+</section>
+
+<!-- ============ PAGE 5: SETTINGS ============ -->
+<section id="page-settings" class="page">
+  <div class="card">
+    <h2 class="card-title">⚙️ Settings</h2>
+
+    <div class="field">
+      <label for="key-deepseek">DeepSeek API Key</label>
+      <input type="password" id="key-deepseek" placeholder="sk-xxxxxxxxxxxx" autocomplete="off">
+      <small class="field-hint">Daftar: platform.deepseek.com</small>
+    </div>
+
+    <div class="field">
+      <label for="key-pexels">Pexels API Key</label>
+      <input type="password" id="key-pexels" placeholder="xxxxxxxxxxxxxxxx" autocomplete="off">
+      <small class="field-hint">Gratis: pexels.com/api</small>
+    </div>
+
+    <div class="field">
+      <label for="key-pixabay">Pixabay API Key</label>
+      <input type="password" id="key-pixabay" placeholder="xxxxxxxxxxxxxxxx" autocomplete="off">
+      <small class="field-hint">Gratis: pixabay.com/api/docs</small>
+    </div>
+
+    <div class="field">
+      <label for="default-style">Style Gambar Default</label>
+      <select id="default-style">
+        <option value="Realistis">Realistis</option>
+        <option value="Ilustrasi">Ilustrasi</option>
+        <option value="Sketsa">Sketsa</option>
+        <option value="Anime">Anime</option>
+        <option value="Watercolor">Watercolor</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" id="btn-save-keys">💾 Simpan Settings</button>
+    <p class="save-status" id="save-status"></p>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title-small">ℹ️ Info</h3>
+    <p class="info-text">Rafa Studio — Personal use only. Tidak untuk dijual.</p>
+    <p class="info-text">API key disimpan di localStorage (tidak di-push ke GitHub).</p>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ MODAL: EXPORT ============ -->
+<div class="modal" id="modal-export">
+  <div class="modal-content">
+    <h3 class="modal-title">📤 Export Storyboard</h3>
+    <p class="modal-sub">Pilih format export:</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" data-export="txt">📄 TXT (narasi)</button>
+      <button class="btn btn-secondary" data-export="csv">📊 CSV (lengkap)</button>
+      <button class="btn btn-secondary" data-export="json">🗂️ JSON (backup)</button>
+      <button class="btn btn-secondary" data-export="srt">🎬 SRT (subtitle)</button>
+    </div>
+    <button class="btn btn-primary" id="modal-export-close">Tutup</button>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ SCRIPTS (URUTAN WAJIB) ============ -->
+<script src="deepseek.js"></script>
+<script src="media.js"></script>
+<script src="export.js"></script>
+<script src="save.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
