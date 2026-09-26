@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Capacitor build
+android/
+ios/
+.gradle/
+build/
+
+# Environment & secrets
+.env
+.env.local
+*api-key*
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Termux temp
+/tmp/
