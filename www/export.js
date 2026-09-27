@@ -32,7 +32,49 @@ const Exporter = (() => {
     return s;
   }
 
-  function downloadFile(filename, content, mime) {
+  async function downloadFile(filename, content, mime) {
+    // === Try Capacitor native (Android APK) ===
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
+      try {
+        const Fs = window.Capacitor.Plugins.Filesystem;
+        const Share = window.Capacitor.Plugins.Share;
+
+        // Auto-save ke Documents (muncul di File Manager > Documents)
+        try {
+          await Fs.writeFile({
+            path: filename,
+            data: content,
+            directory: 'DOCUMENTS',
+            encoding: 'utf8',
+            recursive: true
+          });
+        } catch (e1) {
+          console.warn('Auto-save gagal, lanjut ke share:', e1);
+        }
+
+        // Tulis ke Cache untuk share dialog
+        const result = await Fs.writeFile({
+          path: filename,
+          data: content,
+          directory: 'CACHE',
+          encoding: 'utf8'
+        });
+
+        // Share dialog (user pilih: WhatsApp, Drive, Files, dll)
+        if (Share && Share.share) {
+          await Share.share({
+            title: filename,
+            text: 'Rafa Studio: ' + filename,
+            url: result.uri,
+            dialogTitle: 'Simpan atau bagikan file'
+          });
+        }
+        return;
+      } catch (e) {
+        console.warn('Capacitor export gagal, fallback ke web:', e);
+      }
+    }
+    // === Fallback web browser ===
     const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -168,7 +210,7 @@ const Exporter = (() => {
   }
 
   // ============ MAIN EXPORT ============
-  function exportProject(project, format) {
+  async function exportProject(project, format) {
     if (!project || !project.scenes) {
       throw new Error('Project tidak valid');
     }

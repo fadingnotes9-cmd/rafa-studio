@@ -284,7 +284,9 @@
 
     const imgUrl = scene.ai_image_url || '';
     const imgTag = imgUrl
-      ? `<img class="scene-img" src="${escapeHtml(imgUrl)}" alt="Scene ${scene.scene}" loading="lazy" onerror="this.style.background='#e2e8f0';this.alt='Gagal memuat gambar';">`
+      ? `<img class="scene-img" src="${escapeHtml(imgUrl)}" alt="Scene ${scene.scene}" loading="lazy"
+          data-retry="0" data-max-retry="2"
+          onerror="window._rafaImgRetry && window._rafaImgRetry(this);">`
       : '<div class="scene-img" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;">Tidak ada gambar</div>';
 
     // Section: onscreen_text
@@ -482,9 +484,12 @@
       });
       const sceneCount = (p.scenes || []).length;
 
+      const durasiLabel = p.durasi === 'auto'
+        ? 'Auto'
+        : p.durasi + ' menit';
       item.innerHTML = `
         <h4>${escapeHtml(p.judul)}</h4>
-        <p>${escapeHtml(p.format)} · ${p.durasi} menit · ${escapeHtml(p.genre)} · ${sceneCount} scene</p>
+        <p>${escapeHtml(p.format)} · ${durasiLabel} · ${escapeHtml(p.genre)} · ${sceneCount} scene</p>
         <p>${dateStr}</p>
       `;
 
@@ -581,15 +586,21 @@
   });
 
   document.querySelectorAll('[data-export]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (!state.currentProject) return;
+      const origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ Exporting...';
       try {
-        Exporter.exportProject(state.currentProject, btn.dataset.export);
-        showToast(`✅ Export ${btn.dataset.export.toUpperCase()} berhasil`, 'success');
+        await Exporter.exportProject(state.currentProject, btn.dataset.export);
+        showToast(`✅ Export ${btn.dataset.export.toUpperCase()} siap`, 'success');
         els.modalExport.classList.remove('show');
       } catch (err) {
         console.error(err);
         showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origText;
       }
     });
   });
@@ -612,6 +623,24 @@
     els.form.reset();
     showPage('input');
   });
+
+  // ============ IMAGE RETRY HANDLER ============
+  window._rafaImgRetry = function(imgEl) {
+    const retry = parseInt(imgEl.dataset.retry || '0', 10);
+    const maxRetry = parseInt(imgEl.dataset.maxRetry || '2', 10);
+    if (retry >= maxRetry) {
+      imgEl.style.background = '#e2e8f0';
+      imgEl.alt = 'Gagal memuat gambar';
+      imgEl.onerror = null;
+      return;
+    }
+    imgEl.dataset.retry = String(retry + 1);
+    // Delay lalu reload dengan cache-bust (seed random baru dari URL)
+    setTimeout(() => {
+      const base = imgEl.src.split('&_r=')[0];
+      imgEl.src = base + '&_r=' + Math.random();
+    }, 1500 * (retry + 1));
+  };
 
   // ============ INIT ============
   function init() {
