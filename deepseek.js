@@ -101,21 +101,34 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
       "sfx": "heartbeat",
       "durasi_ideal": 5,
       "keyword_video": ["english keyword 1", "english keyword 2"],
-      "keyword_gambar": "english AI image prompt",
+      "prompt_image": "english base image prompt - universal, no params",
+      "prompt_midjourney": "english prompt + --ar X:Y --style raw --v 6",
+      "prompt_dalle": "english natural language prompt for DALL-E 3",
+      "prompt_sd": "english prompt + (masterpiece, best quality), 8k, detailed",
+      "prompt_sd_negative": "low quality, blurry, watermark, text, deformed",
+      "prompt_video": "camera movement + scene description untuk Runway/Kling/Sora, contoh: [SLOW PAN] ancient city, dust rising, golden hour, cinematic 24fps",
       "fakta_kunci": "17 Ramadan 2 H / 13 Maret 624 M",
       "sumber_hint": "buku sejarah"
     }
   ]
-}`;
+}
+`;
 
   const ATURAN_OUTPUT = `
 ATURAN OUTPUT:
-- Bahasa Indonesia mengalir untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
-- Bahasa Inggris untuk: keyword_video, keyword_gambar
-- Variasikan diksi, jangan repetitif
-- Field opsional yang tidak relevan: isi "-" (JANGAN dikosongkan, JANGAN dikarang)
-- broll: 3-4 referensi visual konkret, bukan deskripsi ulang
-- Output HANYA JSON, tanpa teks pembuka/penutup/penjelasan di luar JSON`;
+- Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
+- Bahasa Inggris untuk: keyword_video, prompt_image, prompt_midjourney, prompt_dalle, prompt_sd, prompt_sd_negative, prompt_video
+
+TENTANG 4 PROMPT GAMBAR/VIDEO:
+- prompt_image: base prompt universal English, deskriptif adegan tanpa parameter. Sesuaikan setting dengan topik (contoh: "Perang Badar" → arabian desert; "Revolusi Industri" → 18th century London factory; "Lubang Hitam" → space black hole accretion disk)
+- prompt_midjourney: prompt_image + parameter MJ sesuai rasio format user + " --style raw --v 6"
+- prompt_dalle: natural language descriptive, lebih naratif, cocok untuk DALL-E 3
+- prompt_sd: prompt_image + "(masterpiece, best quality), 8k, detailed, cinematic lighting"
+- prompt_sd_negative: negative prompt umum untuk SD (low quality, blurry, watermark, text, deformed hands, etc.)
+- prompt_video: fokus ke GERAKAN & KAMERA, bukan hanya deskripsi statis. Contoh: "[SLOW ZOOM IN] candlelit medieval room, dust floating, tense atmosphere, cinematic 24fps"
+
+Variasi diksi, jangan repetitif. Field opsional isi "-" jika tidak relevan.
+Output HANYA JSON, tanpa teks pembuka/penutup.`;
 
   function buildSystemPrompt(genre, judul) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
@@ -146,7 +159,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 
   // ============ BUILD USER PROMPT ============
   function buildUserPrompt(opts) {
-    const { judul, format, durasi, genre, style, konteks, batchInfo } = opts;
+    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo } = opts;
     const styleDesc = STYLE_PROMPT[style] || STYLE_PROMPT['Realistis'];
     const isAuto = durasi === 'auto';
 
@@ -175,6 +188,17 @@ INI BAGIAN ${batchInfo.current} DARI ${batchInfo.total}.
 Lanjutkan dari scene ke-${batchInfo.startScene} sampai scene ke-${batchInfo.endScene}.
 Mulai "scene": ${batchInfo.startScene}, akhiri "scene": ${batchInfo.endScene}.
 JANGAN ulangi narasi scene sebelumnya. Lanjutkan alur cerita.`;
+    }
+
+    if (includeVideo) {
+      prompt += `
+
+VIDEO PROMPTS: WAJIB isi "prompt_video" untuk setiap scene dengan format:
+[GERAKAN KAMERA] deskripsi adegan + gerakan subjek + atmosfer, cinematic 24fps. Contoh: "[SLOW ZOOM IN] candlelit room, dust floating, tense atmosphere, cinematic 24fps"`;
+    } else {
+      prompt += `
+
+VIDEO PROMPTS: Untuk "prompt_video" cukup isi "-" (user tidak mengaktifkan).`;
     }
 
     prompt += `
@@ -242,7 +266,13 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       sfx: s.sfx || '-',
       durasi_ideal: durasi,
       keyword_video: Array.isArray(s.keyword_video) ? s.keyword_video.slice(0, 3) : [],
-      keyword_gambar: s.keyword_gambar || '',
+      keyword_gambar: s.prompt_image || s.keyword_gambar || '',
+      prompt_image: s.prompt_image || s.keyword_gambar || '',
+      prompt_midjourney: s.prompt_midjourney || '',
+      prompt_dalle: s.prompt_dalle || '',
+      prompt_sd: s.prompt_sd || '',
+      prompt_sd_negative: s.prompt_sd_negative || 'low quality, blurry, watermark, text, deformed',
+      prompt_video: s.prompt_video || '',
       fakta_kunci: s.fakta_kunci || '-',
       sumber_hint: s.sumber_hint || '-'
     };
@@ -368,7 +398,8 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         genre: opts.genre,
         style: opts.style,
         konteks: opts.konteks,
-        batchInfo: batchInfo
+        batchInfo: batchInfo,
+        includeVideo: !!opts.includeVideo
       });
 
       const scenes = await callAPI(systemPrompt, userPrompt);

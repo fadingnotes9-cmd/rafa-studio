@@ -135,7 +135,8 @@
       durasi: durasiRaw === 'auto' ? 'auto' : parseInt(durasiRaw, 10),
       genre: els.genre.value,
       style: getRadioValue('style') || 'Realistis',
-      konteks: els.konteks.value.trim()
+      konteks: els.konteks.value.trim(),
+      includeVideo: !!document.getElementById('include-video')?.checked
     };
 
     state.isGenerating = true;
@@ -257,12 +258,48 @@
     } else {
       durasiLabel = project.durasi + ' menit';
     }
-    els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene`;
+    const vidIcon = project.scenes[0] && project.scenes[0].prompt_video && project.scenes[0].prompt_video !== '-' ? ' 🎬' : '';
+    els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene${vidIcon}`;
 
     els.sceneList.innerHTML = '';
     project.scenes.forEach((s, idx) => {
       els.sceneList.appendChild(buildSceneCard(s, idx));
     });
+  }
+
+  function buildPromptCards(scene) {
+    const items = [
+      { key: "image", icon: "🎨", label: "Universal", val: scene.prompt_image },
+      { key: "midjourney", icon: "🖼️", label: "Midjourney", val: scene.prompt_midjourney },
+      { key: "dalle", icon: "🌌", label: "DALL-E 3", val: scene.prompt_dalle },
+      { key: "sd", icon: "⚙️", label: "Stable Diffusion", val: scene.prompt_sd }
+    ];
+    if (scene.prompt_video && scene.prompt_video !== "-") {
+      items.push({ key: "video", icon: "🎬", label: "Video (Runway/Kling)", val: scene.prompt_video });
+    }
+
+    const cards = items.filter(it => it.val && it.val !== "-").map(it => {
+      const safeVal = escapeHtml(it.val);
+      const extra = it.key === "sd" && scene.prompt_sd_negative
+        ? `<div class="prompt-neg"><strong>Negative:</strong> ${escapeHtml(scene.prompt_sd_negative)}</div>`
+        : "";
+      return `
+        <div class="prompt-card">
+          <div class="prompt-header">
+            <span class="prompt-icon">${it.icon}</span>
+            <span class="prompt-label">${it.label}</span>
+            <button class="prompt-copy" data-copy-key="${it.key}" data-copy-val="${safeVal}" title="Copy">📋</button>
+          </div>
+          <div class="prompt-text">${safeVal}</div>
+          ${extra}
+        </div>
+      `;
+    }).join("");
+
+    return `<details class="prompt-section">
+      <summary class="prompt-summary">🎯 Prompt Siap Pakai (${items.filter(i => i.val && i.val !== "-").length})</summary>
+      <div class="prompt-list">${cards}</div>
+    </details>`;
   }
 
   function buildSceneCard(scene, idx) {
@@ -383,6 +420,7 @@
         ${faktaHtml}
         <div class="scene-keywords">${keywords}</div>
         ${mediaPreview}
+        ${buildPromptCards(scene)}
         <div class="scene-actions">
           <button class="btn btn-secondary btn-small" data-act="copy">📋 Copy Narasi</button>
           <button class="btn btn-secondary btn-small" data-act="regen-img">🔄 Ganti Gambar</button>
@@ -436,29 +474,98 @@
     showToast('🔄 Gambar di-generate ulang', 'success');
   }
 
-  function downloadImage(scene, idx) {
+  async function downloadImage(scene, idx) {
     if (!scene.ai_image_url) {
       showToast('Tidak ada gambar untuk di-download', 'error');
       return;
     }
-    showToast('Mengunduh gambar...', '');
-    fetch(scene.ai_image_url)
-      .then(r => r.blob())
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `scene-${scene.scene}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        showToast('✅ Gambar didownload', 'success');
-      })
-      .catch(err => {
-        console.error(err);
-        showToast('Gagal download: ' + err.message, 'error');
-      });
+    showToast('⏳ Mengunduh gambar...', '');
+
+    const filename = `rafa-scene-${String(scene.scene).padStart(2, '0')}.jpg`;
+
+    // === Native Capacitor (Android) ===
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem) {
+      try {
+        const Fs = window.Capacitor.Plugins.Filesystem;
+        const Share = window.Capacitor.Plugins.Share;
+
+        // Fetch gambar jadi base64
+        const res = await fetch(scene.ai_image_url);
+        if (!res.ok) throw new Error('Gagal fetch gambar');
+        const blob = await res.blob();
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            // Hilangkan prefix "data:image/jpeg;base64,"
+            const result = reader.result;
+            resolve(result.split(',')[1]);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        // Auto-save ke Pictures (langsung muncul di Galeri)
+        let savedToGallery = false;
+        try {
+          await Fs.writeFile({
+            path: filename,
+            data: base64,
+            directory: 'EXTERNAL_STORAGE',
+            recursive: true
+          });
+          savedToGallery = true;
+        } catch (e1) {
+          console.warn('Save ke EXTERNAL_STORAGE gagal, coba DOCUMENTS:', e1);
+        }
+
+        if (!savedToGallery) {
+          await Fs.writeFile({
+            path: filename,
+            data: base64,
+            directory: 'DOCUMENTS',
+            recursive: true
+          });
+        }
+
+        // Share dialog (opsional, ke WhatsApp/Galeri/dll)
+        if (Share && Share.share) {
+          const cached = await Fs.writeFile({
+            path: filename,
+            data: base64,
+            directory: 'CACHE'
+          });
+          await Share.share({
+            title: filename,
+            text: 'Scene ' + scene.scene,
+            url: cached.uri,
+            dialogTitle: 'Simpan atau bagikan gambar'
+          });
+        }
+
+        showToast('✅ Gambar tersimpan di Galeri', 'success');
+        return;
+      } catch (e) {
+        console.warn('Native download gagal, fallback ke web:', e);
+      }
+    }
+
+    // === Web Fallback ===
+    try {
+      const res = await fetch(scene.ai_image_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast('✅ Gambar didownload', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal download: ' + err.message, 'error');
+    }
   }
 
   // ============ PROJECTS LIST ============
@@ -621,7 +728,26 @@
     if (state.isGenerating) return;
     state.currentProject = null;
     els.form.reset();
+    const vidEl = document.getElementById('include-video');
+    if (vidEl) vidEl.checked = false;
     showPage('input');
+  });
+
+  // ============ PROMPT COPY HANDLER ============
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-copy-key]");
+    if (!btn) return;
+    e.stopPropagation();
+    const val = btn.dataset.copyVal || "";
+    if (!val) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(val).then(
+        () => showToast("✅ Prompt dicopy", "success"),
+        () => showToast("Gagal copy", "error")
+      );
+    } else {
+      showToast("Clipboard tidak didukung", "error");
+    }
   });
 
   // ============ IMAGE RETRY HANDLER ============

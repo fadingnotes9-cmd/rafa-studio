@@ -555,3 +555,157 @@ input, select, textarea { font-family: inherit; font-size: 15px; }
 }
 .fakta-label { font-weight: 700; }
 .fakta-sumber { color: #991b1b; font-style: italic; }
+
+/* ==================== PROMPT CARDS (Universal) ==================== */
+.prompt-section {
+  margin: 12px 0;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+.prompt-summary {
+  padding: 10px 14px;
+  background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e40af;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prompt-summary::-webkit-details-marker { display: none; }
+.prompt-summary::before {
+  content: "▸";
+  transition: transform 0.2s;
+  display: inline-block;
+  font-size: 11px;
+}
+.prompt-section[open] .prompt-summary::before {
+  transform: rotate(90deg);
+}
+.prompt-list {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prompt-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.15s;
+}
+.prompt-card:active { border-color: #3b82f6; }
+.prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.prompt-icon { font-size: 14px; }
+.prompt-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.prompt-copy {
+  background: #eff6ff;
+  border: none;
+  color: #2563eb;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.prompt-copy:active {
+  background: #2563eb;
+  color: white;
+  transform: scale(0.95);
+}
+.prompt-text {
+  font-family: 'Courier New', monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #1f2937;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 6px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.prompt-neg {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: #fef2f2;
+  border-radius: 6px;
+  font-size: 10.5px;
+  color: #7f1d1d;
+  font-family: 'Courier New', monospace;
+  word-break: break-word;
+}
+
+/* ==================== TOGGLE (checkbox video) ==================== */
+.field-toggle {
+  padding: 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+}
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+}
+.toggle-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #cbd5e1;
+  border-radius: 22px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+.toggle-label input:checked + .toggle-switch {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+.toggle-label input:checked + .toggle-switch::after {
+  transform: translateX(18px);
+}
+.toggle-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.3;
+}
