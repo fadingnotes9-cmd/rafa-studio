@@ -3,23 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#3b82f6">
+<meta name="description" content="AI Storyboard Generator untuk YouTube">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Rafa Studio — AI Storyboard Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<div class="app-bg-gradient"></div>
 <header class="app-header">
   <div class="header-inner">
-    <h1>🎬 Rafa Studio</h1>
-    <p class="header-sub">AI Storyboard Generator untuk YouTube</p>
+    <div class="brand">
+      <div class="brand-icon">🎬</div>
+      <div class="brand-text">
+        <h1>Rafa Studio</h1>
+        <p class="header-sub">AI Storyboard Generator</p>
+      </div>
+    </div>
+    <div class="header-badge">Pro</div>
   </div>
 </header>
 
-<nav class="app-nav">
-  <button class="nav-btn active" data-page="input">📝 Buat</button>
-  <button class="nav-btn" data-page="projects">📁 Project</button>
-  <button class="nav-btn" data-page="settings">⚙️ Settings</button>
+<nav class="app-nav-wrap">
+  <div class="app-nav">
+    <button class="nav-btn active" data-page="input">
+      <span class="nav-icon">✨</span>
+      <span class="nav-label">Buat</span>
+    </button>
+    <button class="nav-btn" data-page="projects">
+      <span class="nav-icon">📁</span>
+      <span class="nav-label">Project</span>
+    </button>
+    <button class="nav-btn" data-page="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </div>
 </nav>
 
 <main class="app-main">
