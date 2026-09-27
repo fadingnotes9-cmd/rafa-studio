@@ -22,3 +22,8 @@ npm-debug.log*
 
 # Termux temp
 /tmp/
+
+# Keystore (JANGAN di-commit! Ada di GitHub Secrets)
+*.keystore
+.keystore-*
+rafa-release.keystore
