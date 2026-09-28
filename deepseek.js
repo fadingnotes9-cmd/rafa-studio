@@ -54,6 +54,29 @@ STRUKTUR WAJIB LONG (Auto):
   * refleksi (~85-95%) — pelajaran moral
   * cta (~95-100%) — subscribe, komentar, video terkait`;
 
+  const STRUKTUR_COMMENTARY_SHORTS = `
+STRUKTUR KOMENTAR — SHORTS (Auto):
+- Target: 40-60 detik, 7-10 scene
+- Babak:
+  * hook (scene 1-2) — pernyataan kontra-intuitif atau fakta mengejutkan dari sumber
+  * konteks (scene 3) — 1-2 kalimat latar belakang sumber
+  * analisis (scene 4-7) — opini original: kritik, konteks tambahan, atau prediksi
+  * kesimpulan (scene 8) — opini tegas, bukan netral
+  * cta (scene 9-10) — pertanyaan pemicu diskusi di komentar
+- Setiap scene WAJIB ada value tambahan, bukan baca ulang sumber`;
+
+  const STRUKTUR_COMMENTARY_LONG = `
+STRUKTUR KOMENTAR — LONG (Auto):
+- Target: 3-5 menit, 35-60 scene
+- Babak:
+  * hook (scene 1-3) — pernyataan provokatif dari sumber
+  * konteks (scene 4-8) — latar belakang, data, kutipan sumber
+  * analisis (scene 9-70%) — opini original: 3-5 poin utama, tiap poin didukung data
+  * kontra (70-80%) — jawab keberatan/sudut pandang lain
+  * kesimpulan (80-90%) — opini tegas
+  * cta (90-100%) — pertanyaan diskusi
+- WAJIB: setiap scene ada "menurut saya", "ini artinya", "yang perlu dicatat"`;
+
   const LAYER_ELEMEN = `
 LAYER 1 — RETENTION:
 - hook_type: gaya pembuka (pertanyaan/fakta mengejutkan/kutipan/adegan dramatis)
@@ -76,6 +99,17 @@ LAYER 3 — PRODUCTION:
 LAYER 4 — QUALITY CONTROL:
 - fakta_kunci: angka/tanggal/nama yang HARUS benar untuk verifikasi user, atau "-"
 - sumber_hint: "Al-Quran"/"Hadis sahih"/"buku sejarah"/"jurnal"/"arsip", atau "-"`;
+
+  const COMMENTARY_GUIDE = `
+MODE KOMENTAR/ANALISIS (aman monetisasi YouTube & Facebook):
+- Kamu BUKAN sekedar merangkum. Kamu memberi KOMENTAR, ANALISIS, dan OPINI original.
+- Sudut pandang harus unik — bukan berita ulang.
+- WAJIB: setiap scene punya value tambahan (insight, kritik, konteks, atau prediksi).
+- DILARANG: membaca ulang artikel/transkrip kata per kata tanpa analisis.
+- WAJIB transformasi: "Sumber bilang X. Menurut analisis saya, ini artinya Y karena Z."
+- Akhiri dengan opini pribadi + pertanyaan pemicu diskusi di kolom komentar.
+- Hindari SARA, ujaran kebencian, dan hoaks. Kalau sumber kontroversial, sajikan berimbang.
+- Sebut sumber: "Menurut [nama media]...", "Dalam video ini disebutkan...".`;
 
   const SCHEMA_JSON = `
 FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
@@ -130,7 +164,74 @@ TENTANG 4 PROMPT GAMBAR/VIDEO:
 Variasi diksi, jangan repetitif. Field opsional isi "-" jika tidak relevan.
 Output HANYA JSON, tanpa teks pembuka/penutup.`;
 
-  function buildSystemPrompt(genre, judul) {
+  // ============ CLIP FINDER PROMPTS ============
+  const CLIP_SYSTEM_PROMPT = `Kamu adalah EDITOR VIDEO PROFESIONAL spesialis konten viral YouTube Shorts / TikTok / Reels.
+
+TUGAS:
+Analisis transkrip video yang diberikan user. Temukan momen-momen TERBAIK yang bisa dijadikan clip pendek (15-60 detik).
+
+KRITERIA MOMEN VIRAL:
+1. Hook kuat di 3 detik pertama (pernyataan kontra-intuitif, fakta mengejutkan, atau pertanyaan provokatif)
+2. Ada "punch" — emosi kuat (kaget, lucu, haru, marah, takjub)
+3. Self-contained — bisa dipahami tanpa nonton video asli
+4. Punya struktur: hook → isi → penutup/kesimpulan
+5. Menarik untuk di-share
+
+TIPE MOMEN:
+- hook: pembuka bikin penasaran
+- punchline: lucu / satir
+- insight: fakta / analisis kontra-intuitif
+- twist: plot twist / pembalikan
+- quote: kutipan kuat dari tokoh
+- emotional: haru / mengharukan
+- data: statistik mengejutkan
+- confrontation: debat / konflik
+
+ATURAN OUTPUT:
+- WAJIB JSON object dengan key "clips" berisi array
+- Timestamp HARUS akurat berdasarkan transkrip (format: HH:MM:SS atau MM:SS)
+- Setiap clip: 15-60 detik (jangan lebih)
+- Urutkan dari viral_score tertinggi ke terendah
+- Bahasa Indonesia untuk semua field naratif (kecuali saran_judul boleh mix)
+
+FORMAT JSON:
+{
+  "clips": [
+    {
+      "rank": 1,
+      "start": "00:03:15",
+      "end": "00:04:02",
+      "durasi_detik": 47,
+      "tipe": "insight",
+      "viral_score": 9,
+      "transkrip_asli": "kutipan persis dari transkrip",
+      "hook_saran": "kalimat pembuka 3 detik yang kuat",
+      "saran_judul": "judul singkat untuk thumbnail",
+      "alasan_menarik": "kenapa momen ini potensial viral",
+      "format_rekomendasi": "Shorts 30-45 detik, hook di 3 detik pertama",
+      "caption_saran": "caption untuk TikTok/Shorts + 3-5 hashtag"
+    }
+  ]
+}`;
+
+  const CLIP_USER_TEMPLATE = (transkrip, targetJumlah, angle, format) => {
+    let prompt = 'FORMAT: ' + format + '\n';
+    if (targetJumlah && targetJumlah !== 'auto') {
+      prompt += 'JUMLAH CLIP TARGET: ' + targetJumlah + ' clip (minimal).\n';
+    } else {
+      prompt += 'JUMLAH CLIP TARGET: Auto — tentukan sendiri, minimal 5 clip, maksimal 15 clip.\n';
+    }
+    if (angle) {
+      prompt += 'ANGLE/TEMA YANG DICARI: ' + angle + '\n';
+    } else {
+      prompt += 'ANGLE/TEMA: Semua tipe momen viral (hook, insight, punchline, twist, emotional, dll).\n';
+    }
+    prompt += '\n=== TRANSKRIP VIDEO ===\n' + transkrip + '\n=== END TRANSKRIP ===\n';
+    prompt += '\nAnalisis transkrip di atas. Output HANYA JSON object dengan key "clips".';
+    return prompt;
+  };
+
+  function buildSystemPrompt(genre, judul, mode) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
 TUGAS:
@@ -148,7 +249,12 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
       /nabi|rasul|muhammad|sahabat|islam|hijrah|badar|khandaq|khaibar|fathu|makkah|madinah|quran|qur'an|hadis/.test(j);
     if (isIslam) prompt += '\n' + SAFEGUARD_ISLAM;
 
-    prompt += '\n' + STRUKTUR_SHORTS + '\n' + STRUKTUR_LONG;
+    if (mode === 'commentary') {
+      prompt += '\n' + COMMENTARY_GUIDE;
+      prompt += '\n' + STRUKTUR_COMMENTARY_SHORTS + '\n' + STRUKTUR_COMMENTARY_LONG;
+    } else {
+      prompt += '\n' + STRUKTUR_SHORTS + '\n' + STRUKTUR_LONG;
+    }
     prompt += '\n' + LAYER_ELEMEN;
     prompt += '\n' + SCHEMA_JSON;
     prompt += '\n' + ATURAN_OUTPUT;
@@ -159,7 +265,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 
   // ============ BUILD USER PROMPT ============
   function buildUserPrompt(opts) {
-    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo } = opts;
+    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo, mode, sumber, sumberData, angle } = opts;
     const styleDesc = STYLE_PROMPT[style] || STYLE_PROMPT['Realistis'];
     const isAuto = durasi === 'auto';
 
@@ -168,6 +274,23 @@ Format: ${format} (${format === 'Shorts' ? '9:16 vertikal' : '16:9 horizontal'})
 Genre: ${genre}
 Style Gambar: ${style} — ${styleDesc}
 Konteks Tambahan: ${konteks || 'tidak ada'}`;
+
+    if (mode === 'commentary') {
+      prompt += `\n\n=== MODE KOMENTAR/ANALISIS ===`;
+      if (sumber === 'artikel' && sumberData && sumberData.url) {
+        prompt += `\nSumber: URL Artikel`;
+        prompt += `\nURL: ${sumberData.url}`;
+        if (sumberData.judul) prompt += `\nJudul Artikel: ${sumberData.judul}`;
+        if (sumberData.konten) prompt += `\nIsi Artikel (ringkas):\n${sumberData.konten}`;
+      } else if (sumber === 'transkrip' && sumberData && sumberData.transkrip) {
+        prompt += `\nSumber: Transkrip Video`;
+        prompt += `\nTranskrip (${sumberData.transkrip.length} karakter):\n${sumberData.transkrip}`;
+      } else {
+        prompt += `\nSumber: Topik Bebas (riset sendiri topik dari judul)`;
+      }
+      if (angle) prompt += `\n\nAngle/Sudut Pandang WAJIB: ${angle}`;
+      prompt += `\n\nTUGAS: Buat narasi KOMENTAR/ANALISIS original dari sumber di atas. Bukan rangkuman — beri opini, kritik, konteks tambahan, atau prediksi.`;
+    }
 
     if (isAuto) {
       prompt += `
@@ -279,7 +402,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
   }
 
   // ============ CALL API ============
-  async function callAPI(systemPrompt, userPrompt) {
+  async function callAPI(systemPrompt, userPrompt, resultKey) {
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('DeepSeek API key belum diisi. Buka Settings dulu.');
 
@@ -317,6 +440,11 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       ? data.choices[0].message.content
       : '';
     const parsed = extractJSON(content);
+    if (resultKey === 'clips') {
+      const clips = (parsed && Array.isArray(parsed.clips)) ? parsed.clips : (Array.isArray(parsed) ? parsed : []);
+      if (!clips.length) throw new Error('DeepSeek tidak mengembalikan clip valid. Coba lagi.');
+      return clips;
+    }
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
     return scenes;
@@ -347,6 +475,85 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     });
   }
 
+  // ============ NORMALIZE CLIP ============
+  function normalizeClip(c, idx) {
+    return {
+      rank: idx + 1,
+      start: c.start || '00:00:00',
+      end: c.end || '00:00:30',
+      durasi_detik: Number(c.durasi_detik) || 30,
+      tipe: c.tipe || 'insight',
+      viral_score: Math.max(1, Math.min(10, Number(c.viral_score) || 5)),
+      transkrip_asli: c.transkrip_asli || '',
+      hook_saran: c.hook_saran || '',
+      saran_judul: c.saran_judul || '',
+      alasan_menarik: c.alasan_menarik || '',
+      format_rekomendasi: c.format_rekomendasi || '',
+      caption_saran: c.caption_saran || ''
+    };
+  }
+
+  // ============ GENERATE CLIPS ============
+  async function generateClips(opts, onProgress) {
+    const transkrip = (opts.transkrip || '').trim();
+    if (!transkrip) throw new Error('Transkrip kosong');
+
+    // Chunking kalau transkrip > 12.000 karakter
+    const MAX_CHARS = 12000;
+    const isLong = transkrip.length > MAX_CHARS;
+
+    if (onProgress) {
+      onProgress({
+        stage: 'analyzing',
+        isLong: isLong,
+        totalChars: transkrip.length
+      });
+    }
+
+    let allClips = [];
+
+    if (!isLong) {
+      // 1x call
+      const userPrompt = CLIP_USER_TEMPLATE(transkrip, opts.clipTarget, opts.clipAngle, opts.format);
+      const clips = await callAPI(CLIP_SYSTEM_PROMPT, userPrompt, 'clips');
+      allClips = clips.map((c, i) => normalizeClip(c, i));
+    } else {
+      // Chunking — bagi jadi beberapa bagian
+      const chunks = [];
+      const chunkSize = Math.ceil(transkrip.length / Math.ceil(transkrip.length / MAX_CHARS));
+      for (let i = 0; i < transkrip.length; i += chunkSize) {
+        chunks.push(transkrip.slice(i, i + chunkSize));
+      }
+      const totalChunks = chunks.length;
+
+      for (let i = 0; i < totalChunks; i++) {
+        if (onProgress) {
+          onProgress({ stage: 'chunk', current: i + 1, total: totalChunks });
+        }
+        const chunkNote = '\n\n[CATATAN: Ini bagian ' + (i + 1) + ' dari ' + totalChunks + '. Analisis momen viral di bagian ini saja.]';
+        const userPrompt = CLIP_USER_TEMPLATE(chunks[i] + chunkNote, opts.clipTarget, opts.clipAngle, opts.format);
+        try {
+          const clips = await callAPI(CLIP_SYSTEM_PROMPT, userPrompt, 'clips');
+          const normalized = clips.map((c, idx) => normalizeClip(c, allClips.length + idx));
+          allClips.push(...normalized);
+        } catch (e) {
+          console.warn('Chunk ' + (i + 1) + ' gagal:', e.message);
+        }
+      }
+    }
+
+    // Sort by viral_score DESC, ambil top N
+    allClips.sort((a, b) => b.viral_score - a.viral_score);
+    const target = opts.clipTarget === 'auto' ? 15 : parseInt(opts.clipTarget, 10);
+    if (allClips.length > target) {
+      allClips = allClips.slice(0, target);
+    }
+    // Re-rank
+    allClips = allClips.map((c, i) => Object.assign({}, c, { rank: i + 1 }));
+
+    return allClips;
+  }
+
   // ============ GENERATE STORYBOARD ============
   async function generateStoryboard(opts, onProgress) {
     const isAuto = opts.durasi === 'auto';
@@ -370,7 +577,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       }
     }
 
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode);
     const allScenes = [];
     const totalBatches = batches.length;
 
@@ -399,7 +606,11 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         style: opts.style,
         konteks: opts.konteks,
         batchInfo: batchInfo,
-        includeVideo: !!opts.includeVideo
+        includeVideo: !!opts.includeVideo,
+        mode: opts.mode,
+        sumber: opts.sumber,
+        sumberData: opts.sumberData,
+        angle: opts.angle
       });
 
       const scenes = await callAPI(systemPrompt, userPrompt);
@@ -416,6 +627,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
   // ============ PUBLIC API ============
   return {
     generateStoryboard,
+    generateClips,
     estimateScenes,
     buildUserPrompt,
     buildSystemPrompt,

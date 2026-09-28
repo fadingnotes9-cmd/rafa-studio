@@ -54,8 +54,27 @@
     <form id="generate-form">
 
       <div class="field">
-        <label for="judul">Judul Video <span class="req">*</span></label>
-        <input type="text" id="judul" placeholder="Contoh: Perang Badar" required autocomplete="off">
+        <label>Mode Konten</label>
+        <div class="radio-group">
+          <label class="radio">
+            <input type="radio" name="mode" value="storyboard" checked>
+            <span>🎬 Storyboard</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="mode" value="commentary">
+            <span>💬 Komentar/Analisis</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="mode" value="clipfinder">
+            <span>✂️ Clip Finder</span>
+          </label>
+        </div>
+        <small class="field-hint">Storyboard = cerita lengkap. Komentar = analisis/opini dari sumber (aman monetisasi).</small>
+      </div>
+
+      <div class="field" id="field-judul">
+        <label for="judul" id="label-judul">Judul Video <span class="req">*</span></label>
+        <input type="text" id="judul" placeholder="Contoh: Perang Badar" autocomplete="off">
       </div>
 
       <div class="field">
@@ -101,10 +120,82 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" id="field-konteks-storyboard">
         <label for="konteks">Konteks Tambahan <small>(opsional)</small></label>
         <textarea id="konteks" rows="3" placeholder="Contoh: ceritakan dari sudut pandang anak-anak"></textarea>
       </div>
+
+      <!-- ========== KOMENTAR MODE (conditional) ========== -->
+      <div id="commentary-fields" style="display:none;">
+
+        <div class="field">
+          <label>Sumber Input</label>
+          <div class="radio-group">
+            <label class="radio">
+              <input type="radio" name="sumber" value="topik" checked>
+              <span>📝 Topik Bebas</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="sumber" value="artikel">
+              <span>🔗 URL Artikel</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="sumber" value="transkrip">
+              <span>📄 Transkrip Video</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field" id="field-url-artikel" style="display:none;">
+          <label for="url-artikel">URL Artikel</label>
+          <input type="url" id="url-artikel" placeholder="https://www.kompas.com/..." autocomplete="off">
+          <small class="field-hint">Copy URL berita/artikel. Aplikasi akan ambil judul & ringkasan otomatis.</small>
+        </div>
+
+        <div class="field" id="field-transkrip" style="display:none;">
+          <label for="transkrip">Transkrip Video</label>
+          <textarea id="transkrip" rows="8" placeholder="Paste transkrip video di sini (dari YouTube auto-caption, Whisper, atau manual)"></textarea>
+          <small class="field-hint">⚠️ AMAN: kamu paste transkrip text (bukan download video). Aplikasi tidak menyimpan atau mengunduh video. Limit ~10.000 kata (~30 menit video).</small>
+        </div>
+
+        <div class="field">
+          <label for="angle">Angle / Sudut Pandang <small>(opsional)</small></label>
+          <textarea id="angle" rows="2" placeholder="Contoh: kritik dari sudut pandang ekonomi, atau analisis dari sisi sejarah"></textarea>
+          <small class="field-hint">Arah komentar/opini kamu — biar hasil tidak generik.</small>
+        </div>
+
+      </div>
+      <!-- ========== END KOMENTAR MODE ========== -->
+
+      <!-- ========== CLIP FINDER MODE (conditional) ========== -->
+      <div id="clipfinder-fields" style="display:none;">
+
+        <div class="field">
+          <label for="transkrip-clip">Transkrip Video <span class="req">*</span></label>
+          <textarea id="transkrip-clip" rows="8" placeholder="Paste transkrip video di sini (dari YouTube auto-caption, Whisper, atau manual)"></textarea>
+          <small class="field-hint">⚠️ AMAN: paste transkrip text (bukan download video). Aplikasi tidak menyimpan/mengunduh video. Limit ~15.000 kata (~45 menit video).</small>
+        </div>
+
+        <div class="field">
+          <label for="clip-target">Jumlah Clip Target <small>(opsional)</small></label>
+          <select id="clip-target">
+            <option value="auto" selected>🎯 Auto (AI tentukan)</option>
+            <option value="3">3 clip</option>
+            <option value="5">5 clip</option>
+            <option value="8">8 clip</option>
+            <option value="10">10 clip</option>
+            <option value="15">15 clip</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="clip-angle">Tema/Angle Clip <small>(opsional)</small></label>
+          <input type="text" id="clip-angle" placeholder="Contoh: cari momen lucu / insight ekonomi / twist cerita">
+          <small class="field-hint">Kalau kosong, AI deteksi momen potensial apapun.</small>
+        </div>
+
+      </div>
+      <!-- ========== END CLIP FINDER MODE ========== -->
 
       <div class="field field-toggle">
         <label class="toggle-label">

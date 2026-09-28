@@ -114,11 +114,23 @@
     e.preventDefault();
     if (state.isGenerating) return;
 
+    const modeVal = getRadioValue('mode') || 'storyboard';
+    const sumberVal = getRadioValue('sumber') || 'topik';
     const judul = els.judul.value.trim();
-    if (!judul) {
-      showToast('Judul wajib diisi', 'error');
-      els.judul.focus();
-      return;
+
+    // Validasi transkrip untuk Clip Finder
+    if (modeVal === 'clipfinder') {
+      const tr = (document.getElementById('transkrip-clip')?.value || '').trim();
+      if (!tr) { showToast('Transkrip wajib diisi', 'error'); return; }
+      if (tr.length < 500) { showToast('Transkrip terlalu pendek (min 500 karakter)', 'error'); return; }
+      sumberData = { transkrip: tr.slice(0, 80000) };
+    } else {
+      const judulWajib = modeVal === 'storyboard' || (modeVal === 'commentary' && sumberVal === 'topik');
+      if (judulWajib && !judul) {
+        showToast(modeVal === 'commentary' ? 'Topik wajib diisi' : 'Judul wajib diisi', 'error');
+        els.judul.focus();
+        return;
+      }
     }
 
     const keys = Store.getApiKeys();
@@ -129,6 +141,39 @@
     }
 
     const durasiRaw = getRadioValue('durasi') || 'auto';
+    const mode = getRadioValue('mode') || 'storyboard';
+    const sumber = getRadioValue('sumber') || 'topik';
+    const angle = (document.getElementById('angle')?.value || '').trim();
+
+    // Validasi + kumpulkan sumberData kalau mode komentar
+    let sumberData = null;
+    if (mode === 'commentary') {
+      if (sumber === 'artikel') {
+        const url = (document.getElementById('url-artikel')?.value || '').trim();
+        if (!url) {
+          showToast('URL artikel wajib diisi', 'error');
+          return;
+        }
+        sumberData = { url: url };
+      } else if (sumber === 'transkrip') {
+        const tr = (document.getElementById('transkrip')?.value || '').trim();
+        if (!tr) {
+          showToast('Transkrip wajib diisi', 'error');
+          return;
+        }
+        if (tr.length < 200) {
+          showToast('Transkrip terlalu pendek (min 200 karakter)', 'error');
+          return;
+        }
+        sumberData = { transkrip: tr.slice(0, 50000) };
+      } else {
+        sumberData = { topik: judul };
+      }
+    }
+
+    const clipTarget = document.getElementById('clip-target')?.value || 'auto';
+    const clipAngle = (document.getElementById('clip-angle')?.value || '').trim();
+
     const opts = {
       judul: judul,
       format: getRadioValue('format') || 'Long',
@@ -136,7 +181,13 @@
       genre: els.genre.value,
       style: getRadioValue('style') || 'Realistis',
       konteks: els.konteks.value.trim(),
-      includeVideo: !!document.getElementById('include-video')?.checked
+      includeVideo: !!document.getElementById('include-video')?.checked,
+      mode: mode,
+      sumber: sumber,
+      sumberData: sumberData,
+      angle: angle,
+      clipTarget: clipTarget,
+      clipAngle: clipAngle
     };
 
     state.isGenerating = true;
@@ -147,9 +198,83 @@
     resetSteps();
 
     try {
+      // STEP 0: Fetch artikel kalau mode komentar + sumber artikel
+      if (opts.mode === 'commentary' && opts.sumber === 'artikel') {
+        setStep(1, 'active');
+        setProgress(5, 'Mengambil isi artikel dari URL...');
+        try {
+          const artikel = await Media.fetchArticle(opts.sumberData.url);
+          opts.sumberData = artikel;
+          if (artikel.judul) opts.judul = artikel.judul;
+          setProgress(10, 'Artikel berhasil diambil');
+        } catch (e) {
+          console.error('fetchArticle gagal:', e);
+          throw new Error('Gagal ambil artikel: ' + e.message);
+        }
+      }
+
+      // ============ MODE: CLIP FINDER ============
+      if (opts.mode === 'clipfinder') {
+        setStep(1, 'active');
+        setProgress(10, 'Menganalisis transkrip mencari momen viral...');
+
+        const clips = await DeepSeek.generateClips({
+          transkrip: opts.sumberData.transkrip,
+          clipTarget: opts.clipTarget,
+          clipAngle: opts.clipAngle,
+          format: opts.format
+        }, (info) => {
+          if (info.stage === 'analyzing') {
+            setProgress(30, info.isLong
+              ? 'Transkrip panjang — dianalisis per bagian...'
+              : 'Menganalisis momen viral...');
+          } else if (info.stage === 'chunk') {
+            const pct = 30 + (info.current / info.total) * 40;
+            setProgress(pct, `Bagian ${info.current}/${info.total}...`);
+          }
+        });
+
+        if (state.abortGenerate) throw new Error('Dibatalkan oleh user');
+
+        setStep(1, 'done');
+        setStep(2, 'done');
+        setProgress(75, `${clips.length} clip ditemukan`);
+
+        // Skip media+image, langsung ke render
+        setStep(3, 'done');
+        setStep(4, 'done');
+        setStep(5, 'done');
+        setProgress(100, 'Selesai!');
+
+        state.currentProject = {
+          id: null,
+          judul: 'Clip Finder — ' + (opts.clipAngle || 'Semua Tema'),
+          format: opts.format,
+          durasi: 'clipfinder',
+          genre: 'ClipFinder',
+          style: 'N/A',
+          konteks: '',
+          mode: 'clipfinder',
+          clipAngle: opts.clipAngle,
+          clipTarget: opts.clipTarget,
+          clips: clips
+        };
+
+        setTimeout(() => {
+          renderClipResults(state.currentProject);
+          showPage('storyboard');
+          showToast(`✂️ ${clips.length} clip terbaik ditemukan!`, 'success');
+        }, 400);
+
+        return; // Stop — tidak lanjut ke DeepSeek storyboard
+      }
+
       // STEP 1: DeepSeek - riset + buat script
       setStep(1, 'active');
-      setProgress(5, 'Meriset cerita dan menyusun kronologi...');
+      const progressMsg = opts.mode === 'commentary'
+        ? 'Menganalisis sumber & menyusun opini...'
+        : 'Meriset cerita dan menyusun kronologi...';
+      setProgress(opts.mode === 'commentary' && opts.sumber === 'artikel' ? 15 : 5, progressMsg);
 
       const scenes = await DeepSeek.generateStoryboard(opts, (info) => {
         if (info.isAuto) {
@@ -211,6 +336,9 @@
         genre: opts.genre,
         style: opts.style,
         konteks: opts.konteks,
+        mode: opts.mode,
+        sumber: opts.sumber,
+        angle: opts.angle,
         scenes: scenes
       };
 
@@ -568,6 +696,136 @@
     }
   }
 
+  // ============ RENDER CLIP RESULTS ============
+  function renderClipResults(project) {
+    els.sbJudul.textContent = project.judul;
+    const clips = project.clips || [];
+    els.sbMeta.textContent = `✂️ Clip Finder · ${clips.length} clip terbaik · ${project.format}`;
+
+    els.sceneList.innerHTML = '';
+    clips.forEach((clip, idx) => {
+      els.sceneList.appendChild(buildClipCard(clip, idx));
+    });
+  }
+
+  function buildClipCard(clip, idx) {
+    const card = document.createElement('div');
+    card.className = 'scene-card clip-card';
+    card.dataset.clipIdx = idx;
+
+    const tipeIcon = {
+      hook: '🎣', punchline: '💥', insight: '🧠', twist: '😱',
+      quote: '💬', emotional: '❤️', data: '📊', confrontation: '⚔️'
+    }[clip.tipe] || '✨';
+
+    const tipeLabel = clip.tipe ? clip.tipe.toUpperCase() : 'CLIP';
+    const viralStars = '⭐'.repeat(Math.max(1, Math.min(5, Math.round(clip.viral_score / 2))));
+
+    card.innerHTML = `
+      <div class="scene-header">
+        <div class="scene-header-left">
+          <span class="scene-num">${tipeIcon} Clip #${clip.rank}</span>
+          <span class="scene-babak">${escapeHtml(tipeLabel)}</span>
+        </div>
+        <span class="scene-time">${escapeHtml(clip.start)} → ${escapeHtml(clip.end)}</span>
+      </div>
+      <div class="scene-body">
+
+        <div class="clip-stats">
+          <div class="clip-stat">
+            <span class="stat-label">Durasi</span>
+            <span class="stat-val">${clip.durasi_detik}s</span>
+          </div>
+          <div class="clip-stat">
+            <span class="stat-label">Viral Score</span>
+            <span class="stat-val">${clip.viral_score}/10</span>
+          </div>
+          <div class="clip-stat">
+            <span class="stat-label">Rating</span>
+            <span class="stat-val">${viralStars}</span>
+          </div>
+        </div>
+
+        <div class="scene-narasi">
+          <strong>📝 Transkrip Asli:</strong><br>${escapeHtml(clip.transkrip_asli)}
+        </div>
+
+        ${clip.hook_saran ? `
+        <div class="scene-onscreen">
+          <strong>🎣 Hook Saran (3 detik):</strong><br>${escapeHtml(clip.hook_saran)}
+        </div>` : ''}
+
+        ${clip.saran_judul ? `
+        <div class="scene-row">
+          <span class="row-label">📺 Judul Saran:</span> ${escapeHtml(clip.saran_judul)}
+        </div>` : ''}
+
+        ${clip.alasan_menarik ? `
+        <div class="scene-row">
+          <span class="row-label">💡 Kenapa Menarik:</span> ${escapeHtml(clip.alasan_menarik)}
+        </div>` : ''}
+
+        ${clip.format_rekomendasi ? `
+        <div class="scene-row">
+          <span class="row-label">📱 Format Rekomendasi:</span> ${escapeHtml(clip.format_rekomendasi)}
+        </div>` : ''}
+
+        ${clip.caption_saran ? `
+        <div class="scene-broll">
+          <div class="broll-label">📄 Caption + Hashtag:</div>
+          <div class="caption-text">${escapeHtml(clip.caption_saran)}</div>
+        </div>` : ''}
+
+        <div class="scene-actions">
+          <button class="btn btn-secondary btn-small" data-act="copy-clip">📋 Copy Detail</button>
+          <button class="btn btn-secondary btn-small" data-act="copy-caption">📋 Copy Caption</button>
+        </div>
+
+      </div>
+    `;
+
+    card.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === 'copy-clip') {
+        const text = `Clip #${clip.rank} | ${clip.start} → ${clip.end} (${clip.durasi_detik}s)
+` +
+          `Tipe: ${clip.tipe} | Viral: ${clip.viral_score}/10
+
+` +
+          `TRANSKRIP:
+${clip.transkrip_asli}
+
+` +
+          `HOOK: ${clip.hook_saran}
+` +
+          `JUDUL: ${clip.saran_judul}
+` +
+          `ALASAN: ${clip.alasan_menarik}
+` +
+          `FORMAT: ${clip.format_rekomendasi}`;
+        copyText(text, 'Detail clip dicopy');
+      } else if (act === 'copy-caption') {
+        copyText(clip.caption_saran, 'Caption dicopy');
+      }
+    });
+
+    return card;
+  }
+
+  function copyText(text, successMsg) {
+    if (!text) { showToast('Tidak ada teks untuk dicopy', 'error'); return; }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => showToast('✅ ' + (successMsg || 'Dicopy'), 'success'),
+        () => showToast('Gagal copy', 'error')
+      );
+    } else {
+      showToast('Clipboard tidak didukung', 'error');
+    }
+  }
+
   // ============ PROJECTS LIST ============
   function renderProjectsList() {
     const all = Store.getAllProjects();
@@ -733,6 +991,70 @@
     showPage('input');
   });
 
+  // ============ MODE TOGGLE (Storyboard vs Komentar) ============
+  function updateModeVisibility() {
+    const mode = getRadioValue("mode") || "storyboard";
+    const sumber = getRadioValue("sumber") || "topik";
+    const commentaryEl = document.getElementById("commentary-fields");
+    const clipEl = document.getElementById("clipfinder-fields");
+    const konteksEl = document.getElementById("field-konteks-storyboard");
+    const judulField = document.getElementById("field-judul");
+    const judulLabel = document.getElementById("label-judul");
+    const judulInput = document.getElementById("judul");
+    const btnGenerate = document.getElementById("btn-generate");
+
+    // Reset semua
+    if (commentaryEl) commentaryEl.style.display = "none";
+    if (clipEl) clipEl.style.display = "none";
+    if (konteksEl) konteksEl.style.display = "block";
+    if (judulField) judulField.style.display = "block";
+    if (btnGenerate) btnGenerate.textContent = "🚀 Generate Storyboard";
+
+    if (mode === "commentary") {
+      if (commentaryEl) commentaryEl.style.display = "block";
+      if (konteksEl) konteksEl.style.display = "none";
+      if (btnGenerate) btnGenerate.textContent = "💬 Generate Komentar";
+      if (sumber === "topik") {
+        if (judulField) judulField.style.display = "block";
+        if (judulLabel) judulLabel.innerHTML = 'Topik yang Dibahas <span class="req">*</span>';
+        if (judulInput) judulInput.placeholder = "Contoh: Prabowo dan Kabinet Baru 2024";
+      } else {
+        if (judulField) judulField.style.display = "none";
+      }
+    } else if (mode === "clipfinder") {
+      if (clipEl) clipEl.style.display = "block";
+      if (konteksEl) konteksEl.style.display = "none";
+      if (judulField) judulField.style.display = "none";
+      if (btnGenerate) btnGenerate.textContent = "✂️ Cari Clip Terbaik";
+    } else {
+      // storyboard
+      if (judulLabel) judulLabel.innerHTML = 'Judul Video <span class="req">*</span>';
+      if (judulInput) judulInput.placeholder = "Contoh: Perang Badar";
+    }
+  }
+
+  function updateSumberVisibility() {
+    const sumber = getRadioValue("sumber") || "topik";
+    const urlField = document.getElementById("field-url-artikel");
+    const trField = document.getElementById("field-transkrip");
+    if (urlField) urlField.style.display = sumber === "artikel" ? "block" : "none";
+    if (trField) trField.style.display = sumber === "transkrip" ? "block" : "none";
+    // Update judul visibility karena tergantung sumber juga
+    updateModeVisibility();
+  }
+
+  // Pasang listener saat DOM ready
+  function initModeToggle() {
+    document.querySelectorAll('input[name="mode"]').forEach(el => {
+      el.addEventListener("change", updateModeVisibility);
+    });
+    document.querySelectorAll('input[name="sumber"]').forEach(el => {
+      el.addEventListener("change", updateSumberVisibility);
+    });
+    updateModeVisibility();
+    updateSumberVisibility();
+  }
+
   // ============ PROMPT COPY HANDLER ============
   document.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-copy-key]");
@@ -774,6 +1096,9 @@
     const defs = Store.getDefaults();
     const styleRadio = document.querySelector(`input[name="style"][value="${defs.style}"]`);
     if (styleRadio) styleRadio.checked = true;
+
+    // Init mode toggle (storyboard vs komentar)
+    initModeToggle();
 
     // Welcome toast
     setTimeout(() => showToast('Selamat datang di Rafa Studio', ''), 500);

@@ -1504,3 +1504,57 @@ html, body {
   line-height: 1.35 !important;
   flex: 1 !important;
 }
+
+/* ============ CLIP FINDER CARD ============ */
+.clip-card .scene-header {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.18), rgba(236, 72, 153, 0.12));
+  border-bottom: 1px solid rgba(251, 146, 60, 0.2);
+}
+.clip-card .scene-num {
+  color: #fb923c;
+}
+.clip-card .scene-babak {
+  background: linear-gradient(135deg, #fb923c, #f97316);
+  box-shadow: 0 2px 8px rgba(251, 146, 60, 0.4);
+}
+.clip-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.clip-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+.clip-stat .stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.clip-stat .stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.caption-text {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #d1fae5;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  word-break: break-word;
+  white-space: pre-wrap;
+  user-select: text;
+  -webkit-user-select: text;
+}

@@ -220,6 +220,41 @@ const Media = (() => {
     return results;
   }
 
+  // ============ FETCH ARTICLE (via r.jina.ai proxy) ============
+  async function fetchArticle(url) {
+    if (!url || !/^https?:\/\//i.test(url)) {
+      throw new Error('URL tidak valid. Harus mulai dengan http:// atau https://');
+    }
+    const proxyUrl = 'https://r.jina.ai/' + url;
+
+    try {
+      const res = await fetch(proxyUrl, {
+        headers: { 'Accept': 'text/plain' }
+      });
+      if (!res.ok) {
+        throw new Error('Gagal fetch artikel (' + res.status + ')');
+      }
+      const text = await res.text();
+      // r.jina.ai return markdown. Ambil 8000 char pertama (cukup untuk analisis)
+      const trimmed = text.trim();
+      // Coba extract judul dari "Title: ..." di awal
+      let judul = '';
+      const titleMatch = trimmed.match(/^Title:\s*(.+)$/m);
+      if (titleMatch) judul = titleMatch[1].trim();
+
+      const konten = trimmed.slice(0, 8000);
+
+      return {
+        url: url,
+        judul: judul || 'Artikel dari ' + new URL(url).hostname,
+        konten: konten
+      };
+    } catch (e) {
+      console.error('fetchArticle error:', e);
+      throw new Error('Gagal ambil artikel: ' + e.message);
+    }
+  }
+
   // ============ PUBLIC API ============
   return {
     buildPollinationsUrl,
@@ -228,7 +263,8 @@ const Media = (() => {
     searchPixabayPhotos,
     searchPixabayVideos,
     fetchSceneMedia,
-    fetchAllMedia
+    fetchAllMedia,
+    fetchArticle
   };
 
 })();

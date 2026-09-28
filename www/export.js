@@ -209,13 +209,111 @@ const Exporter = (() => {
     return out;
   }
 
+  // ============ EXPORT CLIP: CSV ============
+  function clipsToCSV(project) {
+    const header = ['rank', 'start', 'end', 'durasi_detik', 'tipe', 'viral_score', 'transkrip_asli', 'hook_saran', 'saran_judul', 'alasan_menarik', 'format_rekomendasi', 'caption_saran'];
+    const rows = [header.join(',')];
+    (project.clips || []).forEach(c => {
+      rows.push([
+        c.rank,
+        c.start,
+        c.end,
+        c.durasi_detik,
+        csvEscape(c.tipe),
+        c.viral_score,
+        csvEscape(c.transkrip_asli),
+        csvEscape(c.hook_saran),
+        csvEscape(c.saran_judul),
+        csvEscape(c.alasan_menarik),
+        csvEscape(c.format_rekomendasi),
+        csvEscape(c.caption_saran)
+      ].join(','));
+    });
+    return rows.join('\n');
+  }
+
+  // ============ EXPORT CLIP: TXT (script editing) ============
+  function clipsToScript(project) {
+    let out = '═══════════════════════════════════════════════════════\n';
+    out += '  CLIP FINDER — ' + (project.clipAngle || 'Semua Tema') + '\n';
+    out += '  Rafa Studio\n';
+    out += '═══════════════════════════════════════════════════════\n\n';
+    out += 'Format    : ' + project.format + '\n';
+    out += 'Total Clip: ' + (project.clips || []).length + '\n';
+    out += 'Angle     : ' + (project.clipAngle || 'Auto') + '\n';
+    out += 'Generated : ' + new Date(project.updatedAt || Date.now()).toLocaleString('id-ID') + '\n\n';
+
+    (project.clips || []).forEach(c => {
+      out += '───────────────────────────────────────────────────────\n';
+      out += 'CLIP #' + c.rank + '  [' + c.tipe.toUpperCase() + ']  Viral: ' + c.viral_score + '/10\n';
+      out += 'Timecode: ' + c.start + ' → ' + c.end + '  (' + c.durasi_detik + 's)\n';
+      out += '───────────────────────────────────────────────────────\n\n';
+      out += '📝 TRANSKRIP ASLI:\n' + c.transkrip_asli + '\n\n';
+      if (c.hook_saran) out += '🎣 HOOK (3 detik pertama):\n' + c.hook_saran + '\n\n';
+      if (c.saran_judul) out += '📺 JUDUL SARAN: ' + c.saran_judul + '\n\n';
+      if (c.alasan_menarik) out += '💡 KENAPA MENARIK:\n' + c.alasan_menarik + '\n\n';
+      if (c.format_rekomendasi) out += '📱 FORMAT: ' + c.format_rekomendasi + '\n\n';
+      if (c.caption_saran) out += '📄 CAPTION + HASHTAG:\n' + c.caption_saran + '\n\n';
+    });
+
+    return out;
+  }
+
+  // ============ EXPORT CLIP: JSON ============
+  function clipsToJSON(project) {
+    return JSON.stringify({
+      version: 1,
+      type: 'clipfinder',
+      exportedAt: Date.now(),
+      project: project
+    }, null, 2);
+  }
+
+  // ============ EXPORT CLIP: SRT (dari transkrip_asli sebagai subtitle) ============
+  function clipsToSRT(project) {
+    let out = '';
+    (project.clips || []).forEach((c, idx) => {
+      // Konversi HH:MM:SS ke SRT time format
+      const start = c.start.includes('.') ? c.start : c.start + ',000';
+      const end = c.end.includes('.') ? c.end : c.end + ',000';
+      out += (idx + 1) + '\n';
+      out += start + ' --> ' + end + '\n';
+      out += c.transkrip_asli + '\n\n';
+    });
+    return out;
+  }
+
   // ============ MAIN EXPORT ============
   async function exportProject(project, format) {
-    if (!project || !project.scenes) {
-      throw new Error('Project tidak valid');
-    }
+    if (!project) throw new Error('Project tidak valid');
+
+    const isClipFinder = project.mode === 'clipfinder' || (project.clips && !project.scenes);
     const slug = slugify(project.judul);
     const stamp = new Date().toISOString().slice(0, 10);
+
+    if (isClipFinder) {
+      switch (format) {
+        case 'csv':
+          downloadFile(`${slug}-clips-${stamp}.csv`, clipsToCSV(project), 'text/csv;charset=utf-8');
+          break;
+        case 'json':
+          downloadFile(`${slug}-clips-${stamp}.json`, clipsToJSON(project), 'application/json');
+          break;
+        case 'script':
+        case 'txt':
+          downloadFile(`${slug}-clips-${stamp}.txt`, clipsToScript(project));
+          break;
+        case 'srt':
+          downloadFile(`${slug}-clips-${stamp}.srt`, clipsToSRT(project), 'text/plain;charset=utf-8');
+          break;
+        default:
+          throw new Error('Format tidak dikenal: ' + format);
+      }
+      return;
+    }
+
+    // Storyboard / Commentary mode
+    if (!project.scenes) throw new Error('Project tidak valid');
 
     switch (format) {
       case 'txt':
@@ -242,6 +340,7 @@ const Exporter = (() => {
   return {
     exportProject,
     toTXT, toScript, toCSV, toJSON, toSRT,
+    clipsToCSV, clipsToScript, clipsToJSON, clipsToSRT,
     _secToTimestamp: secToTimestamp,
     _secToSrtTime: secToSrtTime
   };
