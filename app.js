@@ -1074,6 +1074,84 @@ ${clip.transkrip_asli}
     setTimeout(() => { els.saveStatus.textContent = ''; }, 2500);
   });
 
+  // ============ TEST CLOUDFLARE ============
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('#btn-test-cloudflare');
+    if (!btn) return;
+    e.preventDefault();
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Testing...';
+
+    try {
+      // Ambil langsung dari input (bukan localStorage) untuk test
+      const cfIdEl = document.getElementById('key-cloudflare-id');
+      const cfTokenEl = document.getElementById('key-cloudflare-token');
+      const cfId = cfIdEl ? cfIdEl.value.trim() : '';
+      const cfToken = cfTokenEl ? cfTokenEl.value.trim() : '';
+
+      if (!cfId || !cfToken) {
+        showToast('❌ Isi Cloudflare Account ID + Token dulu', 'error');
+        return;
+      }
+
+      console.log('[CF TEST] Account ID length:', cfId.length);
+      console.log('[CF TEST] Token length:', cfToken.length);
+      console.log('[CF TEST] Account ID:', cfId);
+      console.log('[CF TEST] Token prefix:', cfToken.slice(0, 8) + '...');
+
+      // Test pakai image generation mini (256x256, 1 step)
+      const url = 'https://api.cloudflare.com/client/v4/accounts/' + cfId + '/ai/run/@cf/black-forest-labs/flux-1-schnell';
+      const testBody = {
+        prompt: 'a simple blue circle, test',
+        steps: 1,
+        width: 256,
+        height: 256
+      };
+
+      console.log('[CF TEST] Sending request...');
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + cfToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testBody)
+      });
+
+      console.log('[CF TEST] Response status:', res.status);
+
+      if (res.ok) {
+        const blob = await res.blob();
+        console.log('[CF TEST] Success! Blob size:', blob.size);
+        showToast('✅ Cloudflare OK! Gambar berhasil digenerate. Blob ' + blob.size + ' bytes', 'success');
+      } else {
+        let errMsg = 'HTTP ' + res.status;
+        try {
+          const errData = await res.json();
+          console.log('[CF TEST] Error data:', errData);
+          if (errData.errors && errData.errors[0]) {
+            errMsg = errData.errors[0].message || errMsg;
+          }
+        } catch (e2) {
+          try {
+            const txt = await res.text();
+            console.log('[CF TEST] Error text:', txt);
+            errMsg = txt.slice(0, 100) || errMsg;
+          } catch (e3) {}
+        }
+        showToast('❌ Cloudflare error: ' + errMsg, 'error');
+      }
+    } catch (e) {
+      console.error('[CF TEST] Exception:', e);
+      showToast('❌ Exception: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+
   // ============ EXPORT MODAL ============
   els.btnExport.addEventListener('click', () => {
     if (!state.currentProject) {
@@ -1238,11 +1316,15 @@ ${clip.transkrip_asli}
   function showVglProgress(total) {
     const el = document.getElementById('vgl-progress');
     if (el) {
+      const usingCF = Media.hasCloudflareKeys();
       el.style.display = 'block';
-      document.getElementById('vgl-progress-text').textContent = `Menyiapkan ${total} gambar...`;
+      document.getElementById('vgl-progress-text').textContent = usingCF
+        ? '🔷 Menyiapkan ' + total + ' gambar via Cloudflare Flux...'
+        : '🟣 Menyiapkan ' + total + ' gambar via Pollinations AI...';
       document.getElementById('vgl-progress-bar').style.width = '0%';
       document.getElementById('vgl-progress-pct').textContent = '0%';
-      document.getElementById('vgl-progress-detail').textContent = `0 / ${total}`;
+      document.getElementById('vgl-progress-detail').textContent = '0 / ' + total;
+      console.log('[VGL] Provider:', usingCF ? 'Cloudflare' : 'Pollinations');
     }
   }
 
@@ -1255,11 +1337,18 @@ ${clip.transkrip_asli}
     const p = Math.round((info.done / info.total) * 100);
     bar.style.width = p + '%';
     pct.textContent = p + '%';
-    detail.textContent = `${info.done} / ${info.total}` + (info.failed ? ` (${info.failed} gagal)` : '');
+    detail.textContent = info.done + ' / ' + info.total + (info.failed ? ' (' + info.failed + ' gagal)' : '');
     if (info.retry) {
-      text.textContent = `Retry gambar #${info.idx + 1} (${info.retry}x)...`;
+      text.textContent = 'Retry gambar #' + (info.idx + 1) + ' (' + info.retry + 'x)...';
+    } else if (info.source === 'cloudflare') {
+      text.textContent = '🔷 Generate via Cloudflare Flux...';
+    } else if (info.source === 'pollinations') {
+      text.textContent = '🟣 Generate via Pollinations AI...';
     } else {
-      text.textContent = 'Generate gambar via Pollinations AI...';
+      text.textContent = 'Generate gambar...';
+    }
+    if (info.error) {
+      text.textContent += ' (' + info.error.slice(0, 50) + ')';
     }
   }
 
