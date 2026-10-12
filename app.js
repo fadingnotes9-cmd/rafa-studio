@@ -1105,9 +1105,7 @@ ${clip.transkrip_asli}
       const url = 'https://api.cloudflare.com/client/v4/accounts/' + cfId + '/ai/run/@cf/black-forest-labs/flux-1-schnell';
       const testBody = {
         prompt: 'a simple blue circle, test',
-        steps: 1,
-        width: 256,
-        height: 256
+        steps: 4
       };
 
       console.log('[CF TEST] Sending request...');
