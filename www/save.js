@@ -12,9 +12,9 @@ const Store = (() => {
   function getApiKeys() {
     try {
       const raw = localStorage.getItem(KEY_APIKEYS);
-      return raw ? JSON.parse(raw) : { deepseek: '', pexels: '', pixabay: '' };
+      return raw ? JSON.parse(raw) : { deepseek: '', pexels: '', pixabay: '', cloudflare_id: '', cloudflare_token: '' };
     } catch (e) {
-      return { deepseek: '', pexels: '', pixabay: '' };
+      return { deepseek: '', pexels: '', pixabay: '', cloudflare_id: '', cloudflare_token: '' };
     }
   }
 
@@ -22,7 +22,9 @@ const Store = (() => {
     localStorage.setItem(KEY_APIKEYS, JSON.stringify({
       deepseek: keys.deepseek || '',
       pexels: keys.pexels || '',
-      pixabay: keys.pixabay || ''
+      pixabay: keys.pixabay || '',
+      cloudflare_id: keys.cloudflare_id || '',
+      cloudflare_token: keys.cloudflare_token || ''
     }));
   }
 

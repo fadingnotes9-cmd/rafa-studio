@@ -389,6 +389,23 @@
     <small class="field-hint" id="vgl-btn-hint" style="display:block;text-align:center;margin-top:8px;"></small>
   </div>
 
+  <!-- Narasi & SEO Result Panel (muncul dulu, sebelum gambar) -->
+  <div class="card" id="vgl-narasi-result" style="display:none;">
+    <div class="card-header-row">
+      <div>
+        <h3 class="card-title-small">📝 Narasi + SEO Hasil AI</h3>
+        <p class="field-hint" id="vgl-narasi-meta">-</p>
+      </div>
+      <button class="btn btn-secondary btn-small" id="vgl-btn-copy-narasi">📋 Copy Narasi</button>
+    </div>
+    <div class="vgl-narasi-box" id="vgl-narasi-text"></div>
+    <div id="vgl-seo-box" style="margin-top:16px;"></div>
+    <div class="vgl-continue-wrap">
+      <button type="button" class="btn btn-primary btn-large" id="vgl-btn-continue-images">📸 Lanjut Generate Gambar</button>
+      <small class="field-hint" style="text-align:center;display:block;margin-top:6px;">Narasi & SEO di atas sudah aman. Kalau gambar gagal, kamu bisa generate ulang tanpa kehilangan narasi.</small>
+    </div>
+  </div>
+
   <!-- Progress -->
   <div class="card" id="vgl-progress" style="display:none;">
     <h3 class="card-title-small">⏳ Generate Gambar</h3>
@@ -434,6 +451,18 @@
       <label for="key-pixabay">Pixabay API Key</label>
       <input type="password" id="key-pixabay" placeholder="xxxxxxxxxxxxxxxx" autocomplete="off">
       <small class="field-hint">Gratis: pixabay.com/api/docs</small>
+    </div>
+
+    <div class="field">
+      <label for="key-cloudflare-id">Cloudflare Account ID</label>
+      <input type="password" id="key-cloudflare-id" placeholder="32 karakter hex" autocomplete="off">
+      <small class="field-hint">Daftar: dash.cloudflare.com → Workers AI</small>
+    </div>
+
+    <div class="field">
+      <label for="key-cloudflare-token">Cloudflare API Token</label>
+      <input type="password" id="key-cloudflare-token" placeholder="Token Workers AI" autocomplete="off">
+      <small class="field-hint">Buat di: Workers AI → Create API Token (permission: Edit)</small>
     </div>
 
     <div class="field">

@@ -1050,15 +1050,23 @@ ${clip.transkrip_asli}
     els.keyDeepseek.value = keys.deepseek || '';
     els.keyPexels.value = keys.pexels || '';
     els.keyPixabay.value = keys.pixabay || '';
+    const cfIdEl = document.getElementById('key-cloudflare-id');
+    const cfTokenEl = document.getElementById('key-cloudflare-token');
+    if (cfIdEl) cfIdEl.value = keys.cloudflare_id || '';
+    if (cfTokenEl) cfTokenEl.value = keys.cloudflare_token || '';
     els.defaultStyle.value = defs.style || 'Realistis';
     els.saveStatus.textContent = '';
   }
 
   els.btnSaveKeys.addEventListener('click', () => {
+    const cfIdEl = document.getElementById('key-cloudflare-id');
+    const cfTokenEl = document.getElementById('key-cloudflare-token');
     Store.saveApiKeys({
       deepseek: els.keyDeepseek.value.trim(),
       pexels: els.keyPexels.value.trim(),
-      pixabay: els.keyPixabay.value.trim()
+      pixabay: els.keyPixabay.value.trim(),
+      cloudflare_id: cfIdEl ? cfIdEl.value.trim() : '',
+      cloudflare_token: cfTokenEl ? cfTokenEl.value.trim() : ''
     });
     Store.saveDefaults({ style: els.defaultStyle.value, bahasa: 'Indonesia' });
     els.saveStatus.textContent = '✅ Settings tersimpan';
@@ -1320,27 +1328,44 @@ ${clip.transkrip_asli}
   // ============ VISUALOGI: BULK IMAGE GENERATION ============
   async function generateAllImages(segments, opts, onProgress) {
     opts = opts || {};
-    const CONCURRENCY = 3; // Pollinations safe rate
+    const useCloudflare = opts.useCloudflare !== false && Media.hasCloudflareKeys();
+    const CONCURRENCY = useCloudflare ? 3 : 2;
     const MAX_RETRY = opts.autoRetry ? 2 : 0;
     const total = segments.length;
 
     let done = 0;
     let failed = 0;
 
-    const results = segments.map(s => ({ ...s, ai_image_url: '', _ok: false }));
+    const results = segments.map(s => ({ ...s, ai_image_url: '', _ok: false, _source: useCloudflare ? 'cloudflare' : 'pollinations' }));
 
     async function processOne(idx) {
       const seg = segments[idx];
+
+      // ===== CLOUDFLARE (priority) =====
+      if (useCloudflare) {
+        try {
+          if (onProgress) onProgress({ done, total, failed, current: idx, source: 'cloudflare' });
+          const dataUrl = await Media.generateCloudflareImage(seg.prompt_image, { width: 1024, height: 576 });
+          results[idx].ai_image_url = dataUrl;
+          results[idx]._ok = true;
+          done++;
+          if (onProgress) onProgress({ done, total, failed });
+          return;
+        } catch (e) {
+          console.warn('Cloudflare gagal scene ' + (idx + 1) + ', fallback:', e.message);
+        }
+      }
+
+      // ===== POLLINATIONS (fallback) =====
       const url = Media.buildVisualogiImageUrl(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
       results[idx].ai_image_url = url;
+      results[idx]._source = 'pollinations';
 
-      // Preload dengan retry
       let ok = await Media.preloadImage(url, 45000);
       let attempt = 0;
       while (!ok && attempt < MAX_RETRY) {
         attempt++;
         if (onProgress) onProgress({ done, total, failed, retry: attempt, idx });
-        // Cache-bust dengan seed baru
         const retryUrl = Media.buildVisualogiImageUrl(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
         results[idx].ai_image_url = retryUrl;
         ok = await Media.preloadImage(retryUrl, 45000);
@@ -1353,7 +1378,6 @@ ${clip.transkrip_asli}
       if (onProgress) onProgress({ done, total, failed });
     }
 
-    // Batch dengan concurrency limit
     for (let i = 0; i < total; i += CONCURRENCY) {
       const chunk = [];
       for (let j = i; j < Math.min(i + CONCURRENCY, total); j++) {
@@ -1362,7 +1386,7 @@ ${clip.transkrip_asli}
       await Promise.all(chunk);
     }
 
-    return { segments: results, failed: failed, total: total };
+    return { segments: results, failed: failed, total: total, provider: useCloudflare ? 'cloudflare' : 'pollinations' };
   }
 
   // ============ VISUALOGI: SPLIT + TIMING ============
@@ -1427,6 +1451,89 @@ ${clip.transkrip_asli}
     return timed;
   }
 
+  // ============ VISUALOGI: RENDER NARASI + SEO ============
+  function renderVglNarasi(project) {
+    const box = document.getElementById('vgl-narasi-result');
+    const textEl = document.getElementById('vgl-narasi-text');
+    const metaEl = document.getElementById('vgl-narasi-meta');
+    const seoBox = document.getElementById('vgl-seo-box');
+    if (!box || !textEl) return;
+
+    box.style.display = 'block';
+    const kata = (project.narasi || '').split(/\s+/).filter(w => w.length > 0).length;
+    const durasi = project.estimasi_durasi_menit || Math.round(kata / 150);
+    metaEl.textContent = `${kata.toLocaleString('id-ID')} kata · ~${durasi} menit · Gaya: ${project.gayaNarasi || '-'}`;
+    textEl.textContent = project.narasi || '';
+
+    if (seoBox) {
+      if (project.seo) {
+        seoBox.innerHTML = buildSeoPanel(project.seo, project.format || 'Long').outerHTML;
+      } else {
+        seoBox.innerHTML = '';
+      }
+    }
+  }
+
+  // ============ VISUALOGI: BULK IMAGE HANDLER ============
+  async function runVglBulkImages() {
+    if (!state.vglProject || !state.vglProject.narasi) {
+      showToast('Narasi belum siap', 'error');
+      return;
+    }
+    const btnContinue = document.getElementById('vgl-btn-continue-images');
+    const btnGen = document.getElementById('vgl-btn-generate');
+
+    try {
+      if (btnContinue) {
+        btnContinue.disabled = true;
+        btnContinue.textContent = '⏳ Generate Prompt...';
+      }
+      if (btnGen) btnGen.disabled = true;
+
+      const tempo = state.vglProject.tempo || 2.5;
+      const segments = splitNarasiToSegments(state.vglProject.narasi, tempo);
+      console.log('[VGL] Split:', segments.length, 'segmen');
+
+      const enriched = await DeepSeek.generateImagePrompts(segments, state.vglProject.style, (info) => {
+        if (btnContinue) btnContinue.textContent = `⏳ Prompt ${info.batch}/${info.totalBatches}...`;
+      });
+
+      state.vglProject.segments = enriched;
+      showVglProgress(enriched.length);
+      if (btnContinue) btnContinue.textContent = '⏳ Generate Gambar...';
+
+      const genResult = await generateAllImages(enriched, { autoRetry: state.vglProject.autoRetry }, (info) => {
+        updateVglProgress(info);
+      });
+
+      state.vglProject.segments = genResult.segments;
+      hideVglProgress();
+      renderVglGrid(state.vglProject);
+
+      if (genResult.failed > 0) {
+        showToast(`⚠️ Selesai. ${genResult.failed} gambar gagal dari ${genResult.total}`, 'error');
+      } else {
+        showToast(`✅ ${genResult.total} gambar berhasil!`, 'success');
+      }
+
+      if (btnContinue) {
+        btnContinue.disabled = false;
+        btnContinue.textContent = '🔄 Generate Ulang Gambar';
+      }
+      if (btnGen) btnGen.disabled = false;
+
+    } catch (e) {
+      console.error('[VGL] bulk image error:', e);
+      showToast('❌ ' + e.message, 'error');
+      if (btnContinue) {
+        btnContinue.disabled = false;
+        btnContinue.textContent = '📸 Lanjut Generate Gambar';
+      }
+      if (btnGen) btnGen.disabled = false;
+      hideVglProgress();
+    }
+  }
+
   function initVisualogiForm() {
     const narasiEl = document.getElementById('vgl-narasi');
     const statsEl = document.getElementById('vgl-narasi-stats');
@@ -1486,6 +1593,26 @@ ${clip.transkrip_asli}
     narasiEl.addEventListener('input', updateStats);
     tempoEl?.addEventListener('change', updateStats);
 
+    // ===== TOMBOL COPY NARASI =====
+    const btnCopyNarasi = document.getElementById('vgl-btn-copy-narasi');
+    btnCopyNarasi?.addEventListener('click', () => {
+      if (!state.vglProject || !state.vglProject.narasi) {
+        showToast('Belum ada narasi untuk dicopy', 'error');
+        return;
+      }
+      copyText(state.vglProject.narasi, 'Narasi dicopy (' + state.vglProject.narasi.length + ' karakter)');
+    });
+
+    // ===== TOMBOL LANJUT GENERATE GAMBAR =====
+    const btnContinue = document.getElementById('vgl-btn-continue-images');
+    btnContinue?.addEventListener('click', () => {
+      if (!state.vglProject || !state.vglProject.narasi) {
+        showToast('Narasi belum siap', 'error');
+        return;
+      }
+      runVglBulkImages();
+    });
+
     btnGen?.addEventListener('click', async () => {
       const judul = judulEl?.value.trim();
       const vglMode = getRadioValue('vgl-mode') || 'paste';
@@ -1499,13 +1626,12 @@ ${clip.transkrip_asli}
       let narasi;
       let seoData = null;
       let gayaNarasi = null;
+      let estimasiMenit = 0;
 
-      // Set UI loading
       btnGen.disabled = true;
       const origText = btnGen.textContent;
 
       try {
-        // ===== MODE ONE-CLICK =====
         if (vglMode === 'oneclick') {
           const gaya = document.getElementById('vgl-gaya')?.value || 'explainer';
           const durasiTarget = document.getElementById('vgl-durasi')?.value || 'auto';
@@ -1524,7 +1650,7 @@ ${clip.transkrip_asli}
             if (info.stage === 'estimating') {
               btnGen.textContent = '⏳ AI estimasi durasi...';
             } else if (info.stage === 'multi') {
-              btnGen.textContent = `⏳ Narasi bagian ${info.current}/${info.total}...`;
+              btnGen.textContent = '⏳ Narasi bagian ' + info.current + '/' + info.total + '...';
             } else if (info.stage === 'generating') {
               btnGen.textContent = '⏳ Menulis narasi...';
             }
@@ -1532,12 +1658,12 @@ ${clip.transkrip_asli}
 
           narasi = pkg.narasi_lengkap;
           seoData = pkg.seo;
+          estimasiMenit = pkg.estimasi_durasi_menit || 0;
 
-          showToast(`✅ Narasi ${pkg.total_kata} kata (~${pkg.estimasi_durasi_menit} menit) siap`, 'success');
-          console.log('[VGL] Narasi generated:', pkg.total_kata, 'kata,', pkg.estimasi_durasi_menit, 'menit');
+          showToast('✅ Narasi ' + pkg.total_kata + ' kata (~' + estimasiMenit + ' menit) siap', 'success');
+          console.log('[VGL] Narasi:', pkg.total_kata, 'kata,', estimasiMenit, 'menit');
 
         } else {
-          // ===== MODE PASTE =====
           narasi = narasiEl?.value.trim();
           if (!narasi || narasi.length < 500) {
             showToast('Narasi terlalu pendek (min 500 karakter)', 'error');
@@ -1552,19 +1678,6 @@ ${clip.transkrip_asli}
         const style = getRadioValue('vgl-style') || 'Explainer';
         const autoRetry = !!document.getElementById('vgl-autoretry')?.checked;
 
-        // Split narasi jadi segmen
-        const segments = splitNarasiToSegments(narasi, tempo);
-        console.log('[VGL] Split:', segments.length, 'segmen');
-
-        // Set UI loading untuk prompt gen
-        btnGen.textContent = '⏳ Generate prompt gambar...';
-
-        // Generate prompt per segmen via DeepSeek
-        const enriched = await DeepSeek.generateImagePrompts(segments, style, (info) => {
-          btnGen.textContent = `⏳ Prompt ${info.batch}/${info.totalBatches}...`;
-        });
-
-        // Simpan project
         state.vglProject = {
           id: null,
           judul: judul,
@@ -1574,33 +1687,14 @@ ${clip.transkrip_asli}
           autoRetry: autoRetry,
           mode: vglMode,
           gayaNarasi: gayaNarasi,
+          estimasi_durasi_menit: estimasiMenit,
           seo: seoData,
-          segments: enriched,
+          segments: null,
           createdAt: Date.now()
         };
 
-        showToast(`✅ ${enriched.length} prompt siap. Mulai generate gambar...`, 'success');
-
-        // Tampilkan progress panel
-        showVglProgress(enriched.length);
-
-        // Bulk image generation
-        const genResult = await generateAllImages(enriched, { autoRetry: autoRetry }, (info) => {
-          updateVglProgress(info);
-        });
-
-        // Simpan hasil final
-        state.vglProject.segments = genResult.segments;
-
-        // Render grid preview
-        hideVglProgress();
-        renderVglGrid(state.vglProject);
-
-        if (genResult.failed > 0) {
-          showToast(`⚠️ Selesai. ${genResult.failed} gambar gagal dari ${genResult.total}`, 'error');
-        } else {
-          showToast(`✅ ${genResult.total} gambar berhasil!`, 'success');
-        }
+        renderVglNarasi(state.vglProject);
+        showToast('✅ Narasi siap. Klik "Lanjut Generate Gambar" untuk proses gambar.', 'success');
 
       } catch (e) {
         console.error('VGL error:', e);

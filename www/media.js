@@ -296,6 +296,71 @@ const Media = (() => {
     });
   }
 
+  // ============ CLOUDFLARE WORKERS AI (Flux Schnell) ============
+  const CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
+  const CF_ENDPOINT_BASE = 'https://api.cloudflare.com/client/v4/accounts/';
+
+  function hasCloudflareKeys() {
+    const keys = getKeys();
+    return !!(keys.cloudflare_id && keys.cloudflare_token);
+  }
+
+  async function generateCloudflareImage(prompt, opts) {
+    opts = opts || {};
+    const keys = getKeys();
+    if (!keys.cloudflare_id || !keys.cloudflare_token) {
+      throw new Error('Cloudflare Account ID atau API Token belum diisi di Settings');
+    }
+
+    const width = opts.width || 1024;
+    const height = opts.height || 576; // 16:9 roughly
+    const url = CF_ENDPOINT_BASE + keys.cloudflare_id + '/ai/run/' + CF_MODEL;
+
+    const body = {
+      prompt: prompt,
+      steps: 4,
+      width: width,
+      height: height
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + keys.cloudflare_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      let errMsg = 'Cloudflare error (' + res.status + ')';
+      try {
+        const errData = await res.json();
+        if (errData.errors && errData.errors[0] && errData.errors[0].message) {
+          errMsg += ': ' + errData.errors[0].message;
+        }
+      } catch (e) {
+        try {
+          const txt = await res.text();
+          errMsg += ': ' + txt.slice(0, 150);
+        } catch (e2) {}
+      }
+      throw new Error(errMsg);
+    }
+
+    // Response = binary image (JPEG/PNG)
+    const blob = await res.blob();
+    // Convert ke base64 data URL untuk portability
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('FileReader error'));
+      reader.readAsDataURL(blob);
+    });
+
+    return dataUrl;
+  }
+
   // ============ PUBLIC API ============
   return {
     buildPollinationsUrl,
@@ -307,7 +372,9 @@ const Media = (() => {
     fetchAllMedia,
     fetchArticle,
     buildVisualogiImageUrl,
-    preloadImage
+    preloadImage,
+    generateCloudflareImage,
+    hasCloudflareKeys
   };
 
 })();
