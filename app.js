@@ -1434,7 +1434,7 @@ ${clip.transkrip_asli}
       if (useCloudflare) {
         try {
           if (onProgress) onProgress({ done, total, failed, current: idx, source: 'cloudflare' });
-          const dataUrl = await Media.generateCloudflareImage(seg.prompt_image, { width: 1024, height: 576 });
+          const dataUrl = await Media.generateCloudflareImage(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
           results[idx].ai_image_url = dataUrl;
           results[idx]._ok = true;
           done++;

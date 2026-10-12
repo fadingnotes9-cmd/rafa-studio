@@ -312,16 +312,15 @@ const Media = (() => {
       throw new Error('Cloudflare Account ID atau API Token belum diisi di Settings');
     }
 
-    const width = opts.width || 1024;
-    const height = opts.height || 576; // 16:9 roughly
     const url = CF_ENDPOINT_BASE + keys.cloudflare_id + '/ai/run/' + CF_MODEL;
 
+    // Flux Schnell: parameter hanya prompt, steps, seed
+    // Width & height TIDAK didukung — model fixed size (1024x1024)
     const body = {
       prompt: prompt,
-      steps: 4,
-      width: width,
-      height: height
+      steps: 4
     };
+    if (opts.seed) body.seed = opts.seed;
 
     const res = await fetch(url, {
       method: 'POST',
