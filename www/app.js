@@ -1104,7 +1104,7 @@ ${clip.transkrip_asli}
       // Test pakai image generation mini (256x256, 1 step)
       const url = 'https://api.cloudflare.com/client/v4/accounts/' + cfId + '/ai/run/@cf/black-forest-labs/flux-1-schnell';
       const testBody = {
-        prompt: 'a simple blue circle, test',
+        prompt: 'a peaceful landscape painting with blue sky, green mountains, and white clouds, watercolor style, educational illustration',
         steps: 4
       };
 
