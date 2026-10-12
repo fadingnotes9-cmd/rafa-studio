@@ -295,14 +295,66 @@
     <p class="field-hint">Paste narasi lengkap → AI auto-split jadi 100-300 gambar dengan timing otomatis.</p>
 
     <div class="field">
+      <label>Mode Input</label>
+      <div class="radio-group">
+        <label class="radio">
+          <input type="radio" name="vgl-mode" value="paste" checked>
+          <span>📝 Paste Narasi</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="vgl-mode" value="oneclick">
+          <span>✨ One-Click (Judul → Semua)</span>
+        </label>
+      </div>
+      <small class="field-hint">One-Click: AI generate narasi lengkap + gambar + SEO otomatis dari judul.</small>
+    </div>
+
+    <div class="field">
       <label for="vgl-judul">Judul Video <span class="req">*</span></label>
       <input type="text" id="vgl-judul" placeholder="Contoh: Apa yang Terjadi Jika Kamu Tidak Tidur 24 Jam?" autocomplete="off">
     </div>
 
-    <div class="field">
+    <div class="field" id="vgl-field-narasi">
       <label for="vgl-narasi">Narasi Lengkap <span class="req">*</span></label>
       <textarea id="vgl-narasi" rows="12" placeholder="Paste narasi lengkap video di sini (minimal 500 kata untuk hasil optimal)"></textarea>
       <small class="field-hint" id="vgl-narasi-stats">0 kata · estimasi 0 gambar · 0 menit</small>
+    </div>
+
+    <!-- Field khusus One-Click -->
+    <div id="vgl-oneclick-fields" style="display:none;">
+
+      <div class="field">
+        <label for="vgl-gaya">Gaya Penyampaian</label>
+        <select id="vgl-gaya">
+          <option value="explainer" selected>✨ Explainer Santai (Kok Bisa style)</option>
+          <option value="dokumenter">🎬 Dokumenter Formal (Netflix style)</option>
+          <option value="humor">😄 Humor / Entertaining (Kurzgesagt komedi)</option>
+          <option value="cerita">📖 Cerita Naratif (Storytelling)</option>
+          <option value="investigatif">🔍 Investigatif (Johnny Harris style)</option>
+        </select>
+        <small class="field-hint">Nada narasi yang akan digenerate AI.</small>
+      </div>
+
+      <div class="field">
+        <label for="vgl-durasi">Target Durasi</label>
+        <select id="vgl-durasi">
+          <option value="auto" selected>🎯 Auto (AI tentukan sesuai kedalaman topik)</option>
+          <option value="3">~3 menit (pendek, padat)</option>
+          <option value="5">~5 menit (standar)</option>
+          <option value="7">~7 menit (medium)</option>
+          <option value="10">~10 menit (panjang)</option>
+          <option value="15">~15 menit (dokumenter)</option>
+          <option value="20">~20 menit (epik)</option>
+        </select>
+        <small class="field-hint">Auto = AI yang tentukan, tergantung kompleksitas topik.</small>
+      </div>
+
+      <div class="field">
+        <label for="vgl-konteks">Konteks Tambahan <small>(opsional)</small></label>
+        <textarea id="vgl-konteks" rows="2" placeholder="Contoh: fokus ke sudut pandang psikologi, atau tambahkan data statistik"></textarea>
+        <small class="field-hint">Arah khusus yang ingin kamu tekankan.</small>
+      </div>
+
     </div>
 
     <div class="field">
@@ -334,6 +386,7 @@
     </div>
 
     <button type="button" class="btn btn-primary btn-large" id="vgl-btn-generate">✨ Generate Auto-Timed Images</button>
+    <small class="field-hint" id="vgl-btn-hint" style="display:block;text-align:center;margin-top:8px;"></small>
   </div>
 
   <!-- Progress -->

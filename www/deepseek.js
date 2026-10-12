@@ -274,7 +274,167 @@ FORMAT JSON:
     return prompt;
   };
 
-  // ============ VISUALOGI: IMAGE PROMPT GENERATOR ============
+  // ============ VISUALOGI ONE-CLICK: NARASI + SEO ============
+  const GAYA_PENYAMPAIAN = {
+    explainer: 'EXPLAINER SANTAI — gaya Kok Bisa/Humentary: bahasa gaul, relatable, "kamu pernah gak sih...", pakai analogi sehari-hari, sesekali humor ringan, sapaan langsung ke penonton',
+    dokumenter: 'DOKUMENTER FORMAL — gaya Netflix/BBC: narasi puitis, dramatis, kalimat panjang mengalir, diksi kaya, suasana sakral, sudut pandang orang ketiga yang tenang',
+    humor: 'HUMOR / ENTERTAINING — gaya Kurzgesagt komedi: analogi absurd, personifikasi konsep, punchline lucu, sarkasme cerdas, meme-friendly, tapi tetap edukatif',
+    cerita: 'CERITA NARATIF — storytelling: alur naratif dengan karakter, konflik, emosi, cliffhanger, pembaca dibawa masuk ke dalam cerita, pakai POV tertentu',
+    investigatif: 'INVESTIGATIF — gaya Johnny Harris: pertanyaan-pertanyaan tajam, data & statistik, analisis mendalam, "tapi ada yang aneh...", membongkar lapisan demi lapisan'
+  };
+
+  const VGL_NARASI_SYSTEM = `Kamu adalah penulis naskah video YouTube profesional untuk channel edukasi (gaya Kok Bisa, Humentary, Neo Japan, Kurzgesagt).
+
+TUGAS:
+Dari judul yang diberikan user, buat NASKAH NARASI LENGKAP yang siap dibacakan untuk video YouTube. Bukan outline, bukan storyboard — naskah utuh yang mengalir dari awal sampai akhir.
+
+STRUKTUR WAJIB:
+1. HOOK (3-5 detik pertama) — pancing rasa penasaran, fakta mengejutkan, atau pertanyaan provokatif
+2. INTRO (10-20 detik) — perkenalkan topik, janji apa yang akan didapat penonton
+3. BODY (70-80% durasi) — inti pembahasan, terstruktur, mengalir natural
+4. CLIMAX — momen paling menarik, twist, atau insight paling kuat
+5. REFLEKSI — pelajaran, kesimpulan, atau pertanyaan filosofis
+6. CTA (5-10 detik terakhir) — ajak like, komen, subscribe
+
+ATURAN NARASI:
+- Bahasa Indonesia mengalir, enak dibacakan
+- Variasi panjang kalimat (pendek untuk tensi, panjang untuk deskripsi)
+- Setiap ~100 kata, ada "hook kecil" untuk jaga perhatian
+- Faktual — hanya data yang terdokumentasi (jangan halusinasi)
+- Sesuaikan gaya penyampaian dengan GAYA yang diminta user
+- JANGAN pakai penanda waktu/stage di narasi (biar siap TTS)
+- Narasi harus tuntas — ada awal, tengah, akhir
+
+OUTPUT JSON:
+{
+  "narasi_lengkap": "teks narasi utuh siap TTS, tanpa penanda stage",
+  "hook": "kalimat hook pertama (3-5 detik)",
+  "cta": "kalimat CTA penutup",
+  "total_kata": 1500,
+  "estimasi_durasi_menit": 10,
+  "seo": {
+    "youtube_title": "judul YouTube optimal (max 70 char, SEO + curiosity)",
+    "youtube_description": "deskripsi lengkap 200-500 kata, ada paragraf + bullet + hashtag",
+    "youtube_tags": "tag dipisah koma, max 500 char total",
+    "seo_meta_title": "meta title 60 char",
+    "seo_meta_description": "meta desc 155 char",
+    "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"],
+    "thumbnail_prompt": "english prompt untuk thumbnail 1280x720 cinematic, focal point jelas",
+    "thumbnail_text_suggestion": "3-5 kata text overlay Indonesia untuk thumbnail",
+    "pinned_comment": "komentar pertama pemicu diskusi"
+  }
+}
+
+HANYA output JSON, tanpa teks lain.`;
+  // ============ VISUALOGI: GENERATE PACKAGE ============
+  async function generateVisualogiPackage(opts, onProgress) {
+    const { judul, gaya, durasiTarget, konteks } = opts;
+    if (!judul) throw new Error('Judul wajib diisi');
+
+    const gayaDesc = GAYA_PENYAMPAIAN[gaya] || GAYA_PENYAMPAIAN['explainer'];
+
+    // Tentukan target kata
+    let targetMenit;
+    if (durasiTarget === 'auto') {
+      targetMenit = null; // AI tentukan
+    } else {
+      targetMenit = parseInt(durasiTarget, 10);
+    }
+
+    // Kalau auto → 1 call dulu untuk estimasi + hook + SEO
+    if (targetMenit === null) {
+      if (onProgress) onProgress({ stage: 'estimating' });
+
+      let userPrompt = `Judul: ${judul}\n\n`;
+      userPrompt += `GAYA PENYAMPAIAN:\n${gayaDesc}\n\n`;
+      if (konteks) userPrompt += `KONTEKS TAMBAHAN: ${konteks}\n\n`;
+      userPrompt += 'Kamu tentukan durasi yang paling tepat untuk judul ini. ';
+      userPrompt += 'Pertimbangkan: kompleksitas topik, kebutuhan detail, kepuasan audiens. ';
+      userPrompt += 'Untuk topik sederhana: 5-7 menit. Topik kompleks: 10-15 menit. ';
+      userPrompt += 'Topik sangat dalam: 15-20 menit.\n\n';
+      userPrompt += 'Output JSON lengkap sesuai format. Narasi harus UTUH dan tuntas.';
+
+      const result = await callAPI(VGL_NARASI_SYSTEM, userPrompt, 'vgl_package');
+      if (!result || !result.narasi_lengkap) {
+        throw new Error('DeepSeek tidak mengembalikan narasi valid');
+      }
+      return result;
+    }
+
+    // Kalau target eksplisit → multi-call untuk narasi panjang
+    const targetKata = targetMenit * 150; // ~150 kata/menit
+    const MAX_KATA_PER_CALL = 800;
+    const jumlahCall = Math.ceil(targetKata / MAX_KATA_PER_CALL);
+
+    if (jumlahCall === 1) {
+      // 1 call saja
+      if (onProgress) onProgress({ stage: 'generating', current: 1, total: 1 });
+      let userPrompt = `Judul: ${judul}\n\n`;
+      userPrompt += `GAYA PENYAMPAIAN:\n${gayaDesc}\n\n`;
+      userPrompt += `TARGET PANJANG: ~${targetKata} kata (durasi ~${targetMenit} menit)\n\n`;
+      if (konteks) userPrompt += `KONTEKS TAMBAHAN: ${konteks}\n\n`;
+      userPrompt += 'Output JSON lengkap sesuai format. Narasi harus UTUH dari HOOK sampai CTA.';
+      return await callAPI(VGL_NARASI_SYSTEM, userPrompt, 'vgl_package');
+    }
+
+    // Multi-call: bagi per bagian
+    const kataPerCall = Math.ceil(targetKata / jumlahCall);
+    const narasiParts = [];
+    let ringkasanSebelumnya = '';
+    let seoFinal = null;
+    let hookFinal = null;
+    let ctaFinal = null;
+
+    for (let i = 0; i < jumlahCall; i++) {
+      if (onProgress) onProgress({ stage: 'multi', current: i + 1, total: jumlahCall });
+
+      const bagian = i === 0 ? 'PEMBUKA (HOOK + INTRO + awal BODY)'
+        : i === jumlahCall - 1 ? 'PENUTUP (akhir BODY + CLIMAX + REFLEKSI + CTA)'
+        : `TENGAH bagian ${i + 1} dari ${jumlahCall - 2} (lanjutan BODY)`;
+
+      let userPrompt = `Judul: ${judul}\n\n`;
+      userPrompt += `BAGIAN KE-${i + 1} DARI ${jumlahCall}: ${bagian}\n\n`;
+      userPrompt += `GAYA: ${gayaDesc}\n\n`;
+      userPrompt += `TARGET BAGIAN INI: ~${kataPerCall} kata\n\n`;
+      if (konteks) userPrompt += `KONTEKS: ${konteks}\n\n`;
+      if (ringkasanSebelumnya) {
+        userPrompt += `RINGKASAN SEBELUMNYA (JANGAN diulang, LANJUTKAN):\n${ringkasanSebelumnya}\n\n`;
+      }
+      if (i === 0) {
+        userPrompt += 'Mulai dari HOOK yang kuat. Akhiri bagian ini dengan transisi ke lanjutan.';
+      } else if (i === jumlahCall - 1) {
+        userPrompt += 'Akhiri dengan CTA yang natural. Ini bagian terakhir.';
+      } else {
+        userPrompt += 'Lanjutkan alur. Jangan mulai dari awal lagi. Akhiri dengan transisi.';
+      }
+      userPrompt += '\n\nOutput JSON dengan field utama "narasi_lengkap". Field SEO hanya untuk bagian terakhir.';
+
+      const res = await callAPI(VGL_NARASI_SYSTEM, userPrompt, 'vgl_package');
+      if (res.narasi_lengkap) {
+        narasiParts.push(res.narasi_lengkap);
+        ringkasanSebelumnya = res.narasi_lengkap.slice(-300); // 300 char terakhir
+      }
+      if (i === 0 && res.hook) hookFinal = res.hook;
+      if (i === jumlahCall - 1) {
+        if (res.cta) ctaFinal = res.cta;
+        if (res.seo) seoFinal = res.seo;
+      }
+    }
+
+    const narasiFinal = narasiParts.join('\n\n');
+    const totalKata = narasiFinal.split(/\s+/).filter(w => w.length > 0).length;
+
+    return {
+      narasi_lengkap: narasiFinal,
+      hook: hookFinal || narasiFinal.slice(0, 200),
+      cta: ctaFinal || narasiFinal.slice(-200),
+      total_kata: totalKata,
+      estimasi_durasi_menit: Math.round(totalKata / 150),
+      seo: seoFinal || null
+    };
+  }
+
+
   const VGL_SYSTEM_PROMPT = `Kamu adalah ART DIRECTOR untuk channel edukasi YouTube (gaya "Kok Bisa?", "Humentary", "Neo Japan").
 
 TUGAS:
@@ -544,6 +704,9 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
     if (resultKey === 'prompts') {
       const prompts = (parsed && Array.isArray(parsed.prompts)) ? parsed.prompts : (Array.isArray(parsed) ? parsed : []);
       return prompts;
+    }
+    if (resultKey === 'vgl_package') {
+      return parsed || null;
     }
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
@@ -847,6 +1010,7 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
     generateStoryboard,
     generateClips,
     generateImagePrompts,
+    generateVisualogiPackage,
     estimateScenes,
     buildUserPrompt,
     buildSystemPrompt,

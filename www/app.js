@@ -1433,12 +1433,37 @@ ${clip.transkrip_asli}
     const judulEl = document.getElementById('vgl-judul');
     const tempoEl = document.getElementById('vgl-tempo');
     const btnGen = document.getElementById('vgl-btn-generate');
+    const btnHint = document.getElementById('vgl-btn-hint');
 
     if (!narasiEl || !statsEl) return;
 
     // Hindari double listener
     if (narasiEl.dataset.listenerAttached === '1') return;
     narasiEl.dataset.listenerAttached = '1';
+
+    // ===== TOGGLE MODE =====
+    function updateVglMode() {
+      const mode = getRadioValue('vgl-mode') || 'paste';
+      const narasiField = document.getElementById('vgl-field-narasi');
+      const oneclickFields = document.getElementById('vgl-oneclick-fields');
+
+      if (mode === 'oneclick') {
+        if (narasiField) narasiField.style.display = 'none';
+        if (oneclickFields) oneclickFields.style.display = 'block';
+        if (btnGen) btnGen.textContent = '✨ Generate Video Package';
+        if (btnHint) btnHint.textContent = 'AI akan generate: narasi + gambar + SEO + SRT secara otomatis';
+      } else {
+        if (narasiField) narasiField.style.display = 'block';
+        if (oneclickFields) oneclickFields.style.display = 'none';
+        if (btnGen) btnGen.textContent = '✨ Generate Auto-Timed Images';
+        if (btnHint) btnHint.textContent = '';
+      }
+    }
+
+    document.querySelectorAll('input[name="vgl-mode"]').forEach(el => {
+      el.addEventListener('change', updateVglMode);
+    });
+    updateVglMode();
 
     function updateStats() {
       const text = narasiEl.value.trim();
@@ -1463,32 +1488,77 @@ ${clip.transkrip_asli}
 
     btnGen?.addEventListener('click', async () => {
       const judul = judulEl?.value.trim();
-      const narasi = narasiEl?.value.trim();
+      const vglMode = getRadioValue('vgl-mode') || 'paste';
+
       if (!judul) {
         showToast('Judul wajib diisi', 'error');
         judulEl?.focus();
         return;
       }
-      if (!narasi || narasi.length < 500) {
-        showToast('Narasi terlalu pendek (min 500 karakter)', 'error');
-        narasiEl?.focus();
-        return;
-      }
 
-      const tempo = parseFloat(document.getElementById('vgl-tempo')?.value || 2.5);
-      const style = getRadioValue('vgl-style') || 'Explainer';
-      const autoRetry = !!document.getElementById('vgl-autoretry')?.checked;
-
-      // Split dulu
-      const segments = splitNarasiToSegments(narasi, tempo);
-      console.log('[VGL] Split menghasilkan', segments.length, 'segmen');
+      let narasi;
+      let seoData = null;
+      let gayaNarasi = null;
 
       // Set UI loading
       btnGen.disabled = true;
       const origText = btnGen.textContent;
-      btnGen.textContent = '⏳ Generate Prompt...';
 
       try {
+        // ===== MODE ONE-CLICK =====
+        if (vglMode === 'oneclick') {
+          const gaya = document.getElementById('vgl-gaya')?.value || 'explainer';
+          const durasiTarget = document.getElementById('vgl-durasi')?.value || 'auto';
+          const konteks = document.getElementById('vgl-konteks')?.value.trim() || '';
+          gayaNarasi = gaya;
+
+          btnGen.textContent = '⏳ Generate narasi...';
+          showToast('🧠 AI menyusun narasi lengkap...', '');
+
+          const pkg = await DeepSeek.generateVisualogiPackage({
+            judul: judul,
+            gaya: gaya,
+            durasiTarget: durasiTarget,
+            konteks: konteks
+          }, (info) => {
+            if (info.stage === 'estimating') {
+              btnGen.textContent = '⏳ AI estimasi durasi...';
+            } else if (info.stage === 'multi') {
+              btnGen.textContent = `⏳ Narasi bagian ${info.current}/${info.total}...`;
+            } else if (info.stage === 'generating') {
+              btnGen.textContent = '⏳ Menulis narasi...';
+            }
+          });
+
+          narasi = pkg.narasi_lengkap;
+          seoData = pkg.seo;
+
+          showToast(`✅ Narasi ${pkg.total_kata} kata (~${pkg.estimasi_durasi_menit} menit) siap`, 'success');
+          console.log('[VGL] Narasi generated:', pkg.total_kata, 'kata,', pkg.estimasi_durasi_menit, 'menit');
+
+        } else {
+          // ===== MODE PASTE =====
+          narasi = narasiEl?.value.trim();
+          if (!narasi || narasi.length < 500) {
+            showToast('Narasi terlalu pendek (min 500 karakter)', 'error');
+            narasiEl?.focus();
+            btnGen.disabled = false;
+            btnGen.textContent = origText;
+            return;
+          }
+        }
+
+        const tempo = parseFloat(document.getElementById('vgl-tempo')?.value || 2.5);
+        const style = getRadioValue('vgl-style') || 'Explainer';
+        const autoRetry = !!document.getElementById('vgl-autoretry')?.checked;
+
+        // Split narasi jadi segmen
+        const segments = splitNarasiToSegments(narasi, tempo);
+        console.log('[VGL] Split:', segments.length, 'segmen');
+
+        // Set UI loading untuk prompt gen
+        btnGen.textContent = '⏳ Generate prompt gambar...';
+
         // Generate prompt per segmen via DeepSeek
         const enriched = await DeepSeek.generateImagePrompts(segments, style, (info) => {
           btnGen.textContent = `⏳ Prompt ${info.batch}/${info.totalBatches}...`;
@@ -1502,11 +1572,13 @@ ${clip.transkrip_asli}
           tempo: tempo,
           style: style,
           autoRetry: autoRetry,
+          mode: vglMode,
+          gayaNarasi: gayaNarasi,
+          seo: seoData,
           segments: enriched,
           createdAt: Date.now()
         };
 
-        console.log('[VGL] Prompt generated:', enriched.length);
         showToast(`✅ ${enriched.length} prompt siap. Mulai generate gambar...`, 'success');
 
         // Tampilkan progress panel
