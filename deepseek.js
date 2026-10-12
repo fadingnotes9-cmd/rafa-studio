@@ -355,9 +355,18 @@ VIDEO PROMPTS: WAJIB isi "prompt_video" untuk setiap scene dengan format:
 VIDEO PROMPTS: Untuk "prompt_video" cukup isi "-" (user tidak mengaktifkan).`;
     }
 
-    prompt += `
+    // SEO hanya di batch pertama (hemat token, tidak duplicate)
+    const includeSeo = batchInfo ? batchInfo.isFirstBatch : true;
+    if (!includeSeo) {
+      prompt += `
 
-Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown, tanpa teks lain.`;
+PENTING: Output HANYA JSON dengan key "scenes" (TANPA key "seo" — sudah dibuat di batch sebelumnya).`;
+    } else {
+      prompt += `
+
+Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa teks lain.`;
+    }
+
     return prompt;
   }
 
@@ -593,19 +602,22 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     const isLong = opts.format === 'Long';
     // Long Auto = butuh batching lebih kecil karena output besar (4 prompt/scene)
     // Shorts Auto = 1 call cukup (maks ~12 scene)
-    const BATCH_SIZE = isLong ? 20 : 35;
+    const BATCH_SIZE = isLong ? 10 : 35;
 
     let totalScenes = 0;
     let batches = [];
 
     if (isAuto) {
       if (isLong) {
-        // Long Auto: batching 3x20 = ~60 scene max
-        // Ini batas realistis untuk sekali generate Long Auto
+        // Long Auto: 6 batch × 10 scene = ~60 scene max
+        // 10 scene/batch lebih aman karena output per scene besar (4 prompt + SEO)
         batches = [
-          { start: 1,  end: 20, count: 20 },
-          { start: 21, end: 40, count: 20 },
-          { start: 41, end: 60, count: 20 }
+          { start: 1,  end: 10, count: 10 },
+          { start: 11, end: 20, count: 10 },
+          { start: 21, end: 30, count: 10 },
+          { start: 31, end: 40, count: 10 },
+          { start: 41, end: 50, count: 10 },
+          { start: 51, end: 60, count: 10 }
         ];
       } else {
         // Shorts Auto: 1 batch, AI tentukan (maks 12 scene)
@@ -642,9 +654,10 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       }
 
       // Auto Long juga butuh batchInfo karena multi-call
+      const isFirstBatch = (b === 0);
       const batchInfo = (totalBatches > 1)
-        ? { current: b + 1, total: totalBatches, startScene: batch.start, endScene: batch.end }
-        : null;
+        ? { current: b + 1, total: totalBatches, startScene: batch.start, endScene: batch.end, isFirstBatch: isFirstBatch }
+        : { isFirstBatch: true };
 
       const userPrompt = buildUserPrompt({
         judul: opts.judul,
