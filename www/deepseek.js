@@ -88,13 +88,13 @@ LAYER 1 — RETENTION:
 LAYER 2 — CRAFT:
 - sensory_detail: detail sensorik spesifik (BUKAN abstrak). Contoh: "rumah kayu berdebu, atap bocor, aroma tanah basah" bukan "rumah tua"
 - analogy: analogi untuk konsep abstrak (sains/agama/politik), atau "-"
-- transisi: "cut to" / "fade" / "match cut" / "zoom in" / "dissolve"
 
 LAYER 3 — PRODUCTION:
 - onscreen_text: teks overlay pendek (≤6 kata). Bahasa Indonesia + istilah asli bila perlu. "-" jika tidak perlu
 - broll: array 3-5 referensi visual konkret (Bahasa Indonesia)
-- mood: emosi + saran musik (contoh: "tegang, musik drum perang")
-- sfx: "whoosh"/"heartbeat"/"silence"/"impact"/"wind"/"-"
+- mood: nuansa warna + emosi untuk color grading (contoh: "tegang, warna merah gelap, kontras tinggi")
+- shot_type: "wide shot" / "medium shot" / "close-up" / "overhead" / "detail"
+- visual_metaphor: fokus utama gambar dalam Bahasa Indonesia (contoh: "Fokus ke ekspresi keringat di dahi, perbesar bagian itu")
 - durasi_ideal: estimasi detik (3-8, bervariasi)
 
 LAYER 4 — QUALITY CONTROL:
@@ -138,11 +138,11 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
       "cliffhanger": "-",
       "sensory_detail": "bahasa Indonesia",
       "analogy": "-",
-      "transisi": "cut to",
       "onscreen_text": "teks overlay",
       "broll": ["ref 1", "ref 2", "ref 3"],
-      "mood": "tegang, musik drum perang",
-      "sfx": "heartbeat",
+      "mood": "tegang, warna merah gelap, kontras tinggi",
+      "shot_type": "close-up",
+      "visual_metaphor": "Fokus ke ekspresi wajah, perbesar mata",
       "durasi_ideal": 5,
       "keyword_video": ["english keyword 1", "english keyword 2"],
       "prompt_image": "english prompt, FORMAT sesuai target AI (universal/midjourney/dalle/sd/flux)",
@@ -168,8 +168,9 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
 
   const ATURAN_OUTPUT = `
 ATURAN OUTPUT:
-- Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
+- Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood, visual_metaphor
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
+- TEXT DI DALAM GAMBAR: Bahasa Indonesia untuk kalimat umum (contoh: label "STRES", tulisan "OTAK DALAM BAHAYA"). Bahasa Inggris hanya untuk istilah teknis universal (contoh: "Gut-Brain Axis", "Cortisol", "DNA"). Hindari text panjang di dalam gambar.
 
 TENTANG PROMPT GAMBAR:
 
@@ -450,11 +451,11 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       cliffhanger: s.cliffhanger || '-',
       sensory_detail: s.sensory_detail || '',
       analogy: s.analogy || '-',
-      transisi: s.transisi || 'cut to',
       onscreen_text: s.onscreen_text || '',
       broll: Array.isArray(s.broll) ? s.broll.slice(0, 5) : [],
       mood: s.mood || '',
-      sfx: s.sfx || '-',
+      shot_type: s.shot_type || 'medium shot',
+      visual_metaphor: s.visual_metaphor || '',
       durasi_ideal: durasi,
       keyword_video: Array.isArray(s.keyword_video) ? s.keyword_video.slice(0, 3) : [],
       keyword_gambar: s.prompt_image || s.keyword_gambar || '',

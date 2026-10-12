@@ -654,9 +654,8 @@
     // Section: production cues
     const cuesHtml = `
       <div class="scene-cues">
+        <span class="cue" title="Shot">📸 ${escapeHtml(scene.shot_type || 'medium shot')}</span>
         <span class="cue" title="Mood">🎭 ${escapeHtml(scene.mood || '-')}</span>
-        <span class="cue" title="SFX">🔊 ${escapeHtml(scene.sfx || '-')}</span>
-        <span class="cue" title="Transisi">🎬 ${escapeHtml(scene.transisi || 'cut to')}</span>
         <span class="cue" title="Durasi">⏱️ ${dur}s</span>
       </div>
     `;
@@ -702,6 +701,7 @@
         <div class="scene-narasi">${escapeHtml(scene.narasi)}</div>
         ${onscreenHtml}
         <div class="scene-meta"><strong>Visual:</strong> ${escapeHtml(scene.visual)}</div>
+        ${scene.visual_metaphor ? `<div class="scene-meta"><strong>🎯 Fokus:</strong> ${escapeHtml(scene.visual_metaphor)}</div>` : ''}
         <div class="scene-meta"><strong>Tokoh:</strong> ${escapeHtml(scene.tokoh)} · <strong>Emosi:</strong> ${escapeHtml(scene.emosi)}</div>
         ${sensoryHtml}
         ${analogyHtml}

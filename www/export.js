@@ -134,9 +134,9 @@ const Exporter = (() => {
       if (s.analogy && s.analogy !== '-') out += '💡 ANALOGI: ' + s.analogy + '\n';
       out += '\n👤 TOKOH: ' + (s.tokoh || '-') + '\n';
       out += '🎭 EMOSI: ' + (s.emosi || '-') + '\n';
+      out += '📸 SHOT: ' + (s.shot_type || 'medium shot') + '\n';
       out += '🎼 MOOD: ' + (s.mood || '-') + '\n';
-      out += '🔊 SFX: ' + (s.sfx || '-') + '\n';
-      out += '🎬 TRANSISI: ' + (s.transisi || 'cut to') + '\n';
+      if (s.visual_metaphor) out += '🎯 FOKUS: ' + s.visual_metaphor + '\n';
       out += '⏱️  DURASI: ' + (s.durasi_ideal || 5) + 's\n';
       if (s.open_loop && s.open_loop !== '-') out += '\n🔗 OPEN LOOP: ' + s.open_loop + '\n';
       if (s.cliffhanger && s.cliffhanger !== '-') out += '⏸️  CLIFFHANGER: ' + s.cliffhanger + '\n';
@@ -154,7 +154,7 @@ const Exporter = (() => {
 
   // ============ EXPORT CSV (lengkap, v2) ============
   function toCSV(project) {
-    const header = ['scene', 'babak', 'start', 'end', 'durasi_ideal', 'narasi', 'onscreen_text', 'visual', 'sensory_detail', 'analogy', 'tokoh', 'emosi', 'mood', 'sfx', 'transisi', 'hook_type', 'open_loop', 'cliffhanger', 'pattern_interrupt', 'broll', 'fakta_kunci', 'sumber_hint', 'keyword_video', 'keyword_gambar'];
+    const header = ['scene', 'babak', 'start', 'end', 'durasi_ideal', 'narasi', 'onscreen_text', 'visual', 'sensory_detail', 'analogy', 'tokoh', 'emosi', 'mood', 'shot_type', 'visual_metaphor', 'hook_type', 'open_loop', 'cliffhanger', 'pattern_interrupt', 'broll', 'fakta_kunci', 'sumber_hint', 'keyword_video', 'keyword_gambar'];
     const rows = [header.join(',')];
 
     project.scenes.forEach(s => {
@@ -172,8 +172,8 @@ const Exporter = (() => {
         csvEscape(s.tokoh),
         csvEscape(s.emosi),
         csvEscape(s.mood || ''),
-        csvEscape(s.sfx || ''),
-        csvEscape(s.transisi || ''),
+        csvEscape(s.shot_type || ''),
+        csvEscape(s.visual_metaphor || ''),
         csvEscape(s.hook_type || ''),
         csvEscape(s.open_loop || ''),
         csvEscape(s.cliffhanger || ''),
