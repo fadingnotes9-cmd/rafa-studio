@@ -101,6 +101,15 @@ LAYER 4 — QUALITY CONTROL:
 - fakta_kunci: angka/tanggal/nama yang HARUS benar untuk verifikasi user, atau "-"
 - sumber_hint: "Al-Quran"/"Hadis sahih"/"buku sejarah"/"jurnal"/"arsip", atau "-"`;
 
+  // ============ TONE NARASI ============
+  const TONE_NARASI = {
+    relatable: 'RELATABLE CASUAL — gaya Kok Bisa/Visualogi: bahasa gaul santai, "kamu pernah gak sih...", "nah ini yang terjadi...", relatable, sapaan langsung penonton, humor ringan, hindari jargon',
+    dokumenter: 'DOKUMENTER FORMAL — gaya Netflix/BBC: narasi puitis dramatis, kalimat mengalir, diksi kaya, suasana sakral, sudut pandang orang ketiga tenang',
+    humor: 'HUMOR — gaya Kurzgesagt komedi: analogi absurd, personifikasi, punchline lucu, sarkasme cerdas, meme-friendly, tetap edukatif',
+    cerita: 'CERITA NARATIF — storytelling: alur dengan karakter, konflik, emosi, cliffhanger, pembaca masuk ke cerita, POV konsisten',
+    investigatif: 'INVESTIGATIF — gaya Johnny Harris: pertanyaan tajam, data statistik, analisis mendalam, "tapi ada yang aneh...", bongkar lapisan demi lapisan'
+  };
+
   const COMMENTARY_GUIDE = `
 MODE KOMENTAR/ANALISIS (aman monetisasi YouTube & Facebook):
 - Kamu BUKAN sekedar merangkum. Kamu memberi KOMENTAR, ANALISIS, dan OPINI original.
@@ -285,7 +294,7 @@ FORMAT JSON:
     return prompt;
   };
 
-  function buildSystemPrompt(genre, judul, mode) {
+  function buildSystemPrompt(genre, judul, mode, tone) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
 TUGAS:
@@ -302,6 +311,9 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
     const isIslam = g === 'agama' || g.includes('islam') ||
       /nabi|rasul|muhammad|sahabat|islam|hijrah|badar|khandaq|khaibar|fathu|makkah|madinah|quran|qur'an|hadis/.test(j);
     if (isIslam) prompt += '\n' + SAFEGUARD_ISLAM;
+
+    const toneDesc = TONE_NARASI[tone] || TONE_NARASI['relatable'];
+    prompt += '\n\n=== TONE NARASI ===\n' + toneDesc + '\n';
 
     if (mode === 'commentary') {
       prompt += '\n' + COMMENTARY_GUIDE;
@@ -647,7 +659,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       }
     }
 
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone);
     const allScenes = [];
     const totalBatches = batches.length;
     let capturedSeo = null;

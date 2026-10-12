@@ -144,6 +144,7 @@
     const mode = getRadioValue('mode') || 'storyboard';
     const targetAI = document.getElementById('target-ai')?.value || 'universal';
     const modePrompt = document.getElementById('mode-prompt')?.value || 'per_scene';
+    const tone = document.getElementById('tone-narasi')?.value || 'relatable';
     const sumber = getRadioValue('sumber') || 'topik';
     const angle = (document.getElementById('angle')?.value || '').trim();
 
@@ -186,6 +187,7 @@
       includeVideo: !!document.getElementById('include-video')?.checked,
       targetAI: targetAI,
       modePrompt: modePrompt,
+      tone: tone,
       mode: mode,
       sumber: sumber,
       sumberData: sumberData,
