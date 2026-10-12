@@ -420,41 +420,6 @@
     });
   }
 
-  function buildPromptCards(scene) {
-    const items = [
-      { key: "image", icon: "🎨", label: "Universal", val: scene.prompt_image },
-      { key: "midjourney", icon: "🖼️", label: "Midjourney", val: scene.prompt_midjourney },
-      { key: "dalle", icon: "🌌", label: "DALL-E 3", val: scene.prompt_dalle },
-      { key: "sd", icon: "⚙️", label: "Stable Diffusion", val: scene.prompt_sd }
-    ];
-    if (scene.prompt_video && scene.prompt_video !== "-") {
-      items.push({ key: "video", icon: "🎬", label: "Video (Runway/Kling)", val: scene.prompt_video });
-    }
-
-    const cards = items.filter(it => it.val && it.val !== "-").map(it => {
-      const safeVal = escapeHtml(it.val);
-      const extra = it.key === "sd" && scene.prompt_sd_negative
-        ? `<div class="prompt-neg"><strong>Negative:</strong> ${escapeHtml(scene.prompt_sd_negative)}</div>`
-        : "";
-      return `
-        <div class="prompt-card">
-          <div class="prompt-header">
-            <span class="prompt-icon">${it.icon}</span>
-            <span class="prompt-label">${it.label}</span>
-            <button class="prompt-copy" data-copy-key="${it.key}" data-copy-val="${safeVal}" title="Copy">📋</button>
-          </div>
-          <div class="prompt-text">${safeVal}</div>
-          ${extra}
-        </div>
-      `;
-    }).join("");
-
-    return `<details class="prompt-section">
-      <summary class="prompt-summary">🎯 Prompt Siap Pakai (${items.filter(i => i.val && i.val !== "-").length})</summary>
-      <div class="prompt-list">${cards}</div>
-    </details>`;
-  }
-
   // ============ SEO PANEL ============
   function buildSeoPanel(seo, format) {
     const panel = document.createElement('div');
@@ -609,15 +574,7 @@
       `;
     });
 
-    // Negative prompt kalau ada
-    let negBlock = '';
-    if (scene.prompt_sd_negative && scene.prompt_sd_negative !== '-') {
-      negBlock = `
-        <div class="prompt-neg">
-          <strong>🚫 Negative Prompt:</strong> ${escapeHtml(scene.prompt_sd_negative)}
-        </div>
-      `;
-    }
+    const negBlock = '';
 
     // Data attribute untuk copy-all
     const allPrompts = [scene.prompt_image].concat(prompts.map(p => p.prompt)).filter(Boolean).join('\n\n');
@@ -754,7 +711,6 @@
         ${faktaHtml}
         <div class="scene-keywords">${keywords}</div>
         ${mediaPreview}
-        ${buildPromptCards(scene)}
         ${buildPromptAccordion(scene)}
         <div class="scene-actions">
           <button class="btn btn-secondary btn-small" data-act="copy">📋 Copy Narasi</button>

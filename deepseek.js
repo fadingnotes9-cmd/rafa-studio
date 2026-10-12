@@ -145,11 +145,7 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
       "sfx": "heartbeat",
       "durasi_ideal": 5,
       "keyword_video": ["english keyword 1", "english keyword 2"],
-      "prompt_image": "english base image prompt - universal, no params",
-      "prompt_midjourney": "english prompt + --ar X:Y --style raw --v 6",
-      "prompt_dalle": "english natural language prompt for DALL-E 3",
-      "prompt_sd": "english prompt + (masterpiece, best quality), 8k, detailed",
-      "prompt_sd_negative": "low quality, blurry, watermark, text, deformed",
+      "prompt_image": "english prompt, FORMAT sesuai target AI (universal/midjourney/dalle/sd/flux)",
       "prompt_video": "camera movement + scene description untuk Runway/Kling/Sora, contoh: [SLOW PAN] ancient city, dust rising, golden hour, cinematic 24fps",
       "fakta_kunci": "17 Ramadan 2 H / 13 Maret 624 M",
       "sumber_hint": "buku sejarah"
@@ -173,7 +169,7 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
   const ATURAN_OUTPUT = `
 ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
-- Bahasa Inggris untuk: keyword_video, prompt_image, prompt_midjourney, prompt_dalle, prompt_sd, prompt_sd_negative, prompt_video
+- Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
 
 TENTANG PROMPT GAMBAR:
 
@@ -181,7 +177,6 @@ TENTANG PROMPT GAMBAR:
    - universal: "cinematic wide shot of ancient desert, warrior silhouette, golden hour"
    - midjourney: base prompt + " --ar 16:9 --style raw --v 6" (--ar 9:16 untuk Shorts)
    - dalle: natural language panjang, naratif. Contoh "A cinematic wide shot showing an ancient Arabian desert at golden hour with a warrior silhouette standing on a sand dune"
-   - sd: base prompt + ", (masterpiece, best quality), 8k, detailed, cinematic lighting" + isi prompt_sd_negative
    - flux: natural language, tanpa parameter. Contoh "Ancient Arabian desert at golden hour, warrior standing on a dune, cinematic realistic"
 
 2. MODE PROMPT (modePrompt):
@@ -461,7 +456,6 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         waktu: p.waktu || '',
         prompt: p.prompt || ''
       })).filter(p => p.prompt) : [],
-      prompt_sd_negative: s.prompt_sd_negative || '',
       prompt_video: s.prompt_video || '',
       fakta_kunci: s.fakta_kunci || '-',
       sumber_hint: s.sumber_hint || '-'
@@ -639,9 +633,11 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         // Long Auto: batching 3x20 = ~60 scene max
         // Ini batas realistis untuk sekali generate Long Auto
         batches = [
-          { start: 1,  end: 20, count: 20 },
-          { start: 21, end: 40, count: 20 },
-          { start: 41, end: 60, count: 20 }
+          { start: 1,  end: 12, count: 12 },
+          { start: 13, end: 24, count: 12 },
+          { start: 25, end: 36, count: 12 },
+          { start: 37, end: 48, count: 12 },
+          { start: 49, end: 60, count: 12 }
         ];
       } else {
         // Shorts Auto: 1 batch, AI tentukan (maks 12 scene)
