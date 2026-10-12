@@ -255,6 +255,47 @@ const Media = (() => {
     }
   }
 
+  // ============ VISUALOGI: IMAGE URL BUILDER (16:9) ============
+  function buildVisualogiImageUrl(prompt, opts) {
+    opts = opts || {};
+    const width = opts.width || 1280;
+    const height = opts.height || 720;
+    const seed = opts.seed || Math.floor(Math.random() * 999999);
+    const encoded = encodeURIComponent(prompt).replace(/%20/g, '+');
+    const params = new URLSearchParams({
+      width: String(width),
+      height: String(height),
+      model: 'flux',
+      nologo: 'true',
+      seed: String(seed)
+    });
+    return `${POLLINATIONS}${encoded}?${params.toString()}`;
+  }
+
+  // Preload 1 gambar (return Promise true/false)
+  function preloadImage(url, timeoutMs) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (!settled) { settled = true; resolve(false); }
+      }, timeoutMs || 45000);
+      img.onload = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(true);
+      };
+      img.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(false);
+      };
+      img.src = url;
+    });
+  }
+
   // ============ PUBLIC API ============
   return {
     buildPollinationsUrl,
@@ -264,7 +305,9 @@ const Media = (() => {
     searchPixabayVideos,
     fetchSceneMedia,
     fetchAllMedia,
-    fetchArticle
+    fetchArticle,
+    buildVisualogiImageUrl,
+    preloadImage
   };
 
 })();

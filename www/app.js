@@ -55,6 +55,7 @@
     if (btn) btn.classList.add('active');
     if (name === 'projects') renderProjectsList();
     if (name === 'settings') loadSettingsForm();
+    if (name === 'visualogi') initVisualogiForm();
   }
 
   els.navBtns.forEach(btn => {
@@ -1221,6 +1222,325 @@ ${clip.transkrip_asli}
       imgEl.src = base + '&_r=' + Math.random();
     }, 1500 * (retry + 1));
   };
+
+  // ============ VISUALOGI ============
+  const VGL_TEMPO_DEFAULT = 2.5;
+
+  // ============ VISUALOGI: PROGRESS UI ============
+  function showVglProgress(total) {
+    const el = document.getElementById('vgl-progress');
+    if (el) {
+      el.style.display = 'block';
+      document.getElementById('vgl-progress-text').textContent = `Menyiapkan ${total} gambar...`;
+      document.getElementById('vgl-progress-bar').style.width = '0%';
+      document.getElementById('vgl-progress-pct').textContent = '0%';
+      document.getElementById('vgl-progress-detail').textContent = `0 / ${total}`;
+    }
+  }
+
+  function updateVglProgress(info) {
+    const bar = document.getElementById('vgl-progress-bar');
+    const pct = document.getElementById('vgl-progress-pct');
+    const detail = document.getElementById('vgl-progress-detail');
+    const text = document.getElementById('vgl-progress-text');
+    if (!bar) return;
+    const p = Math.round((info.done / info.total) * 100);
+    bar.style.width = p + '%';
+    pct.textContent = p + '%';
+    detail.textContent = `${info.done} / ${info.total}` + (info.failed ? ` (${info.failed} gagal)` : '');
+    if (info.retry) {
+      text.textContent = `Retry gambar #${info.idx + 1} (${info.retry}x)...`;
+    } else {
+      text.textContent = 'Generate gambar via Pollinations AI...';
+    }
+  }
+
+  function hideVglProgress() {
+    const el = document.getElementById('vgl-progress');
+    if (el) el.style.display = 'none';
+  }
+
+  // ============ VISUALOGI: GRID PREVIEW ============
+  function renderVglGrid(project) {
+    const container = document.getElementById('vgl-result');
+    const grid = document.getElementById('vgl-grid');
+    const meta = document.getElementById('vgl-result-meta');
+    if (!container || !grid) return;
+
+    container.style.display = 'block';
+    const segs = project.segments || [];
+    meta.textContent = `${segs.length} gambar · ${project.style} · ${project.tempo} kata/detik`;
+
+    grid.innerHTML = '';
+    segs.forEach((seg, i) => {
+      const card = document.createElement('div');
+      card.className = 'vgl-thumb' + (seg._ok === false ? ' vgl-thumb-failed' : '');
+      card.innerHTML = `
+        <img src="${escapeHtml(seg.ai_image_url)}" alt="Scene ${seg.scene}" loading="lazy" onerror="this.style.opacity=0.3;">
+        <div class="vgl-thumb-info">
+          <span class="vgl-thumb-num">#${seg.scene}</span>
+          <span class="vgl-thumb-time">${formatTime(seg.start)}-${formatTime(seg.end)}</span>
+        </div>
+        <button class="vgl-thumb-retry" data-scene="${i}" title="Regenerate">🔄</button>
+      `;
+      grid.appendChild(card);
+    });
+
+    // Retry handler
+    grid.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.vgl-thumb-retry');
+      if (!btn) return;
+      e.stopPropagation();
+      const i = parseInt(btn.dataset.scene, 10);
+      if (isNaN(i)) return;
+      const seg = project.segments[i];
+      btn.textContent = '⏳';
+      const newUrl = Media.buildVisualogiImageUrl(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
+      const ok = await Media.preloadImage(newUrl, 45000);
+      if (ok) {
+        seg.ai_image_url = newUrl;
+        seg._ok = true;
+        const img = btn.closest('.vgl-thumb').querySelector('img');
+        if (img) img.src = newUrl;
+        btn.closest('.vgl-thumb')?.classList.remove('vgl-thumb-failed');
+        showToast('✅ Gambar di-regenerate', 'success');
+      } else {
+        showToast('Gagal regenerate', 'error');
+      }
+      btn.textContent = '🔄';
+    });
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  // ============ VISUALOGI: BULK IMAGE GENERATION ============
+  async function generateAllImages(segments, opts, onProgress) {
+    opts = opts || {};
+    const CONCURRENCY = 3; // Pollinations safe rate
+    const MAX_RETRY = opts.autoRetry ? 2 : 0;
+    const total = segments.length;
+
+    let done = 0;
+    let failed = 0;
+
+    const results = segments.map(s => ({ ...s, ai_image_url: '', _ok: false }));
+
+    async function processOne(idx) {
+      const seg = segments[idx];
+      const url = Media.buildVisualogiImageUrl(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
+      results[idx].ai_image_url = url;
+
+      // Preload dengan retry
+      let ok = await Media.preloadImage(url, 45000);
+      let attempt = 0;
+      while (!ok && attempt < MAX_RETRY) {
+        attempt++;
+        if (onProgress) onProgress({ done, total, failed, retry: attempt, idx });
+        // Cache-bust dengan seed baru
+        const retryUrl = Media.buildVisualogiImageUrl(seg.prompt_image, { seed: Math.floor(Math.random() * 999999) });
+        results[idx].ai_image_url = retryUrl;
+        ok = await Media.preloadImage(retryUrl, 45000);
+      }
+
+      results[idx]._ok = ok;
+      done++;
+      if (!ok) failed++;
+
+      if (onProgress) onProgress({ done, total, failed });
+    }
+
+    // Batch dengan concurrency limit
+    for (let i = 0; i < total; i += CONCURRENCY) {
+      const chunk = [];
+      for (let j = i; j < Math.min(i + CONCURRENCY, total); j++) {
+        chunk.push(processOne(j));
+      }
+      await Promise.all(chunk);
+    }
+
+    return { segments: results, failed: failed, total: total };
+  }
+
+  // ============ VISUALOGI: SPLIT + TIMING ============
+  function splitNarasiToSegments(narasi, tempo) {
+    const clean = narasi.replace(/\s+/g, ' ').trim();
+    // Split per kalimat: titik, tanya, seru
+    const sentences = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [clean];
+
+    const MIN_KATA = 5;
+    const MAX_KATA = 28; // ~11 detik di tempo 2.5
+    const segments = [];
+    let buffer = '';
+
+    sentences.forEach(s => {
+      const sTrim = s.trim();
+      if (!sTrim) return;
+
+      const candidate = buffer ? buffer + ' ' + sTrim : sTrim;
+      const kata = candidate.split(/\s+/).filter(w => w.length > 0).length;
+
+      if (kata > MAX_KATA && buffer) {
+        // Buffer sudah cukup, push buffer, mulai baru
+        segments.push(buffer);
+        buffer = sTrim;
+      } else {
+        buffer = candidate;
+      }
+
+      // Cek buffer sekarang apakah sudah >= min
+      const bufKata = buffer.split(/\s+/).filter(w => w.length > 0).length;
+      if (bufKata >= MIN_KATA && bufKata >= MAX_KATA * 0.7) {
+        segments.push(buffer);
+        buffer = '';
+      }
+    });
+
+    if (buffer.trim()) segments.push(buffer.trim());
+
+    // Fallback kalau tidak ada segment
+    if (segments.length === 0) segments.push(clean);
+
+    // Hitung timing
+    const t = parseFloat(tempo) || 2.5;
+    let cursor = 0;
+    const timed = segments.map((text, i) => {
+      const kata = text.split(/\s+/).filter(w => w.length > 0).length;
+      let durasi = Math.round(kata / t);
+      durasi = Math.max(3, Math.min(8, durasi)); // clamp 3-8 detik
+      const start = cursor;
+      const end = cursor + durasi;
+      cursor = end;
+      return {
+        scene: i + 1,
+        start: start,
+        end: end,
+        durasi_ideal: durasi,
+        narasi: text,
+        prompt_image: ''
+      };
+    });
+
+    return timed;
+  }
+
+  function initVisualogiForm() {
+    const narasiEl = document.getElementById('vgl-narasi');
+    const statsEl = document.getElementById('vgl-narasi-stats');
+    const judulEl = document.getElementById('vgl-judul');
+    const tempoEl = document.getElementById('vgl-tempo');
+    const btnGen = document.getElementById('vgl-btn-generate');
+
+    if (!narasiEl || !statsEl) return;
+
+    // Hindari double listener
+    if (narasiEl.dataset.listenerAttached === '1') return;
+    narasiEl.dataset.listenerAttached = '1';
+
+    function updateStats() {
+      const text = narasiEl.value.trim();
+      if (!text) {
+        statsEl.textContent = '0 kata · estimasi 0 gambar · 0 menit';
+        return;
+      }
+      const kata = text.split(/\s+/).filter(w => w.length > 0).length;
+      const tempo = parseFloat(tempoEl?.value || VGL_TEMPO_DEFAULT);
+
+      // Asumsi: 5 kata per gambar (avg), min 1 gambar per ~3 detik
+      const estimasiGambar = Math.max(1, Math.round(kata / 5));
+      const totalDetik = kata / tempo;
+      const totalMenit = Math.floor(totalDetik / 60);
+      const sisaDetik = Math.round(totalDetik % 60);
+
+      statsEl.textContent = `${kata.toLocaleString('id-ID')} kata · ~${estimasiGambar} gambar · ~${totalMenit} menit ${sisaDetik} detik`;
+    }
+
+    narasiEl.addEventListener('input', updateStats);
+    tempoEl?.addEventListener('change', updateStats);
+
+    btnGen?.addEventListener('click', async () => {
+      const judul = judulEl?.value.trim();
+      const narasi = narasiEl?.value.trim();
+      if (!judul) {
+        showToast('Judul wajib diisi', 'error');
+        judulEl?.focus();
+        return;
+      }
+      if (!narasi || narasi.length < 500) {
+        showToast('Narasi terlalu pendek (min 500 karakter)', 'error');
+        narasiEl?.focus();
+        return;
+      }
+
+      const tempo = parseFloat(document.getElementById('vgl-tempo')?.value || 2.5);
+      const style = getRadioValue('vgl-style') || 'Explainer';
+      const autoRetry = !!document.getElementById('vgl-autoretry')?.checked;
+
+      // Split dulu
+      const segments = splitNarasiToSegments(narasi, tempo);
+      console.log('[VGL] Split menghasilkan', segments.length, 'segmen');
+
+      // Set UI loading
+      btnGen.disabled = true;
+      const origText = btnGen.textContent;
+      btnGen.textContent = '⏳ Generate Prompt...';
+
+      try {
+        // Generate prompt per segmen via DeepSeek
+        const enriched = await DeepSeek.generateImagePrompts(segments, style, (info) => {
+          btnGen.textContent = `⏳ Prompt ${info.batch}/${info.totalBatches}...`;
+        });
+
+        // Simpan project
+        state.vglProject = {
+          id: null,
+          judul: judul,
+          narasi: narasi,
+          tempo: tempo,
+          style: style,
+          autoRetry: autoRetry,
+          segments: enriched,
+          createdAt: Date.now()
+        };
+
+        console.log('[VGL] Prompt generated:', enriched.length);
+        showToast(`✅ ${enriched.length} prompt siap. Mulai generate gambar...`, 'success');
+
+        // Tampilkan progress panel
+        showVglProgress(enriched.length);
+
+        // Bulk image generation
+        const genResult = await generateAllImages(enriched, { autoRetry: autoRetry }, (info) => {
+          updateVglProgress(info);
+        });
+
+        // Simpan hasil final
+        state.vglProject.segments = genResult.segments;
+
+        // Render grid preview
+        hideVglProgress();
+        renderVglGrid(state.vglProject);
+
+        if (genResult.failed > 0) {
+          showToast(`⚠️ Selesai. ${genResult.failed} gambar gagal dari ${genResult.total}`, 'error');
+        } else {
+          showToast(`✅ ${genResult.total} gambar berhasil!`, 'success');
+        }
+
+      } catch (e) {
+        console.error('VGL error:', e);
+        showToast('❌ ' + e.message, 'error');
+      } finally {
+        btnGen.disabled = false;
+        btnGen.textContent = origText;
+      }
+    });
+
+    updateStats();
+  }
 
   // ============ INIT ============
   function init() {

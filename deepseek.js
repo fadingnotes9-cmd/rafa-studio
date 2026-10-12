@@ -274,6 +274,38 @@ FORMAT JSON:
     return prompt;
   };
 
+  // ============ VISUALOGI: IMAGE PROMPT GENERATOR ============
+  const VGL_SYSTEM_PROMPT = `Kamu adalah ART DIRECTOR untuk channel edukasi YouTube (gaya "Kok Bisa?", "Humentary", "Neo Japan").
+
+TUGAS:
+Untuk setiap segmen narasi yang diberikan, buat SATU prompt gambar (English) yang bisa langsung dipakai di AI image generator (Midjourney, DALL-E, Stable Diffusion, Pollinations).
+
+ATURAN PROMPT GAMBAR:
+1. Bahasa Inggris, deskriptif, 15-30 kata
+2. Deskripsikan VISUAL konkret — bukan abstrak
+3. Fokus pada apa yang HARUS terlihat di gambar
+4. Kalau narasi menyebut konsep abstrak, ubah jadi METAFORA visual yang jelas
+5. Gaya: flat illustration, vector art, minimal, colorful, educational (kecuali user minta lain)
+6. JANGAN sertakan teks/tulisan di gambar (kecuali memang perlu label)
+7. Sertakan elemen penguat: emosi karakter, komposisi, warna dominan
+
+CONTOH:
+Narasi: "Ngomong-ngomong, kamu pernah gak sih ngerasain perut bunyi padahal lagi nggak lapar?"
+Prompt: "flat illustration of confused young person holding stomach, thought bubble with question mark, pastel colors, minimal, educational style"
+
+Narasi: "Itu bukan pertanda kamu lapar lho."
+Prompt: "icon of stomach with big red X mark, flat vector, minimal design, blue background, educational"
+
+OUTPUT FORMAT (JSON):
+{
+  "prompts": [
+    { "scene": 1, "prompt_image": "english prompt here" },
+    { "scene": 2, "prompt_image": "english prompt here" }
+  ]
+}
+
+HANYA output JSON, tanpa teks tambahan.`;
+
   function buildSystemPrompt(genre, judul, mode) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
@@ -509,6 +541,10 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
       if (!clips.length) throw new Error('DeepSeek tidak mengembalikan clip valid. Coba lagi.');
       return clips;
     }
+    if (resultKey === 'prompts') {
+      const prompts = (parsed && Array.isArray(parsed.prompts)) ? parsed.prompts : (Array.isArray(parsed) ? parsed : []);
+      return prompts;
+    }
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
     // Return object dengan seo (opsional)
@@ -618,6 +654,78 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
     allClips = allClips.map((c, i) => Object.assign({}, c, { rank: i + 1 }));
 
     return allClips;
+  }
+
+  // ============ VISUALOGI: GENERATE IMAGE PROMPTS (batched) ============
+  const STYLE_SUFFIX_VGL = {
+    'Explainer': 'flat vector illustration, minimal design, colorful icons, 2D, educational, clean',
+    'Diagram': 'clean schematic diagram, labeled, white background, technical illustration, informative',
+    'Cartoon': 'cute cartoon illustration, playful, hand-drawn, friendly characters, pastel colors',
+    'Realistis': 'cinematic photography, photorealistic, dramatic lighting, 8k, highly detailed',
+    'Ilustrasi': 'digital illustration, vibrant colors, detailed line art, concept art'
+  };
+
+  async function generateImagePrompts(segments, style, onProgress) {
+    if (!segments || !segments.length) throw new Error('Tidak ada segmen');
+
+    const BATCH_SIZE = 40;
+    const styleSuffix = STYLE_SUFFIX_VGL[style] || STYLE_SUFFIX_VGL['Explainer'];
+    const total = segments.length;
+    const totalBatches = Math.ceil(total / BATCH_SIZE);
+
+    const enriched = segments.map(s => ({ ...s })); // copy
+
+    for (let b = 0; b < totalBatches; b++) {
+      const startIdx = b * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, total);
+      const batchSegments = segments.slice(startIdx, endIdx);
+
+      if (onProgress) {
+        onProgress({
+          batch: b + 1,
+          totalBatches,
+          startScene: startIdx + 1,
+          endScene: endIdx,
+          total
+        });
+      }
+
+      // Build user prompt
+      let userPrompt = 'Buat prompt gambar untuk ' + batchSegments.length + ' segmen berikut.\n';
+      userPrompt += 'STYLE: ' + style + '\n\n';
+      batchSegments.forEach((seg, i) => {
+        const globalNum = startIdx + i + 1;
+        userPrompt += 'Scene ' + globalNum + ':\n"' + seg.narasi + '"\n\n';
+      });
+      userPrompt += 'Output JSON dengan key "prompts" berisi ' + batchSegments.length + ' item.\n';
+      userPrompt += 'Setiap prompt_image WAJIB diakhiri dengan: ' + styleSuffix;
+
+      let result;
+      try {
+        result = await callAPI(VGL_SYSTEM_PROMPT, userPrompt, 'prompts');
+      } catch (e) {
+        console.warn('VGL batch ' + (b + 1) + ' gagal, retry...', e.message);
+        result = await callAPI(VGL_SYSTEM_PROMPT, userPrompt, 'prompts');
+      }
+
+      // result = array of {scene, prompt_image}
+      const arr = Array.isArray(result) ? result : [];
+      arr.forEach((item, i) => {
+        const globalIdx = startIdx + i;
+        if (globalIdx < enriched.length && item.prompt_image) {
+          enriched[globalIdx].prompt_image = item.prompt_image;
+        }
+      });
+    }
+
+    // Fallback untuk yang kosong
+    enriched.forEach((seg, i) => {
+      if (!seg.prompt_image) {
+        seg.prompt_image = seg.narasi.slice(0, 100) + ', ' + styleSuffix;
+      }
+    });
+
+    return enriched;
   }
 
   // ============ GENERATE STORYBOARD ============
@@ -738,6 +846,7 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
   return {
     generateStoryboard,
     generateClips,
+    generateImagePrompts,
     estimateScenes,
     buildUserPrompt,
     buildSystemPrompt,

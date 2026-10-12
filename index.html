@@ -38,6 +38,10 @@
       <span class="nav-icon">📁</span>
       <span class="nav-label">Project</span>
     </button>
+    <button class="nav-btn" data-page="visualogi">
+      <span class="nav-icon">✨</span>
+      <span class="nav-label">Visualogi</span>
+    </button>
     <button class="nav-btn" data-page="settings">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Settings</span>
@@ -281,6 +285,78 @@
       <!-- Di-render via JS -->
     </div>
     <p class="empty-hint" id="projects-empty">Belum ada project tersimpan.</p>
+  </div>
+</section>
+
+<!-- ============ PAGE VISUALOGI ============ -->
+<section id="page-visualogi" class="page">
+  <div class="card">
+    <h2 class="card-title">✨ Visualogi Mode</h2>
+    <p class="field-hint">Paste narasi lengkap → AI auto-split jadi 100-300 gambar dengan timing otomatis.</p>
+
+    <div class="field">
+      <label for="vgl-judul">Judul Video <span class="req">*</span></label>
+      <input type="text" id="vgl-judul" placeholder="Contoh: Apa yang Terjadi Jika Kamu Tidak Tidur 24 Jam?" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="vgl-narasi">Narasi Lengkap <span class="req">*</span></label>
+      <textarea id="vgl-narasi" rows="12" placeholder="Paste narasi lengkap video di sini (minimal 500 kata untuk hasil optimal)"></textarea>
+      <small class="field-hint" id="vgl-narasi-stats">0 kata · estimasi 0 gambar · 0 menit</small>
+    </div>
+
+    <div class="field">
+      <label>Style Gambar</label>
+      <div class="radio-group vertical">
+        <label class="radio"><input type="radio" name="vgl-style" value="Explainer" checked><span>✨ Explainer (flat, colorful, minimal)</span></label>
+        <label class="radio"><input type="radio" name="vgl-style" value="Diagram"><span>📊 Diagram (schematic, technical)</span></label>
+        <label class="radio"><input type="radio" name="vgl-style" value="Cartoon"><span>🎨 Cartoon (playful, cute)</span></label>
+        <label class="radio"><input type="radio" name="vgl-style" value="Realistis"><span>📷 Realistis (photorealistic)</span></label>
+        <label class="radio"><input type="radio" name="vgl-style" value="Ilustrasi"><span>🖌️ Ilustrasi (digital, vibrant)</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="vgl-tempo">Tempo Narasi</label>
+      <select id="vgl-tempo">
+        <option value="2.5" selected>Normal (2.5 kata/detik — rekomendasi)</option>
+        <option value="2.0">Lambat (2 kata/detik — audiens umum)</option>
+        <option value="3.0">Cepat (3 kata/detik — audiens muda)</option>
+      </select>
+    </div>
+
+    <div class="field field-toggle">
+      <label class="toggle-label">
+        <input type="checkbox" id="vgl-autoretry" checked>
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">🔄 Auto-retry gambar yang gagal (2x coba)</span>
+      </label>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-large" id="vgl-btn-generate">✨ Generate Auto-Timed Images</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="card" id="vgl-progress" style="display:none;">
+    <h3 class="card-title-small">⏳ Generate Gambar</h3>
+    <p class="progress-sub" id="vgl-progress-text">Menyiapkan...</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="vgl-progress-bar"></div>
+    </div>
+    <div class="progress-pct" id="vgl-progress-pct">0%</div>
+    <p class="field-hint" id="vgl-progress-detail">0 / 0</p>
+  </div>
+
+  <!-- Result Grid -->
+  <div class="card" id="vgl-result" style="display:none;">
+    <div class="card-header-row">
+      <div>
+        <h3 class="card-title-small">🎬 Hasil Preview</h3>
+        <p class="field-hint" id="vgl-result-meta">-</p>
+      </div>
+      <button class="btn btn-secondary btn-small" id="vgl-btn-download">📥 Download</button>
+    </div>
+    <div class="vgl-grid" id="vgl-grid"></div>
   </div>
 </section>
 
