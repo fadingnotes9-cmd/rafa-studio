@@ -372,6 +372,13 @@ INI BAGIAN ${batchInfo.current} DARI ${batchInfo.total}.
 Lanjutkan dari scene ke-${batchInfo.startScene} sampai scene ke-${batchInfo.endScene}.
 Mulai "scene": ${batchInfo.startScene}, akhiri "scene": ${batchInfo.endScene}.
 JANGAN ulangi narasi scene sebelumnya. Lanjutkan alur cerita.`;
+      if (batchInfo.current === batchInfo.total) {
+        prompt += `
+SEO: Ini batch TERAKHIR. WAJIB isi key "seo" LENGKAP (youtube_title, youtube_description, youtube_tags, seo_meta_title, seo_meta_description, hashtags, chapters, thumbnail_prompt, thumbnail_text_suggestion, pinned_comment).`;
+      } else {
+        prompt += `
+SEO: Ini BUKAN batch terakhir. Untuk key "seo" cukup isi {} (kosong).`;
+      }
     }
 
     if (includeVideo) {
@@ -716,7 +723,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       // Extract scenes + seo
       const batchScenes = result.scenes || result;
       const batchSeo = result.seo || null;
-      if (batchSeo && !capturedSeo) capturedSeo = batchSeo;
+      if (batchSeo && (batchSeo.youtube_title || batchSeo.youtube_description)) capturedSeo = batchSeo;
       const normalized = batchScenes.map((s, i) => normalizeScene(s, allScenes.length + i));
       allScenes.push(...normalized);
     }
