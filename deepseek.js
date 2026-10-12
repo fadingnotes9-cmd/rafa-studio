@@ -12,7 +12,8 @@ const DeepSeek = (() => {
     'Ilustrasi': 'digital illustration, vibrant colors, detailed line art, flat shading, concept art',
     'Sketsa': 'pencil sketch, hand-drawn, monochrome, detailed crosshatching, sketchbook style',
     'Anime': 'studio ghibli style, anime illustration, soft colors, detailed background, cel shaded',
-    'Watercolor': 'watercolor painting, soft brush strokes, pastel colors, artistic, paper texture'
+    'Watercolor': 'watercolor painting, soft brush strokes, pastel colors, artistic, paper texture',
+    'Flat 2D': 'flat 2D illustration, bold solid colors, cartoon style, minimal shading, clean vector art, high contrast, expressive character, simple shapes'
   };
 
   const SAFEGUARD_ISLAM = `
@@ -165,13 +166,35 @@ ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_midjourney, prompt_dalle, prompt_sd, prompt_sd_negative, prompt_video
 
-TENTANG 4 PROMPT GAMBAR/VIDEO:
-- prompt_image: base prompt universal English, deskriptif adegan tanpa parameter. Sesuaikan setting dengan topik (contoh: "Perang Badar" → arabian desert; "Revolusi Industri" → 18th century London factory; "Lubang Hitam" → space black hole accretion disk)
-- prompt_midjourney: prompt_image + parameter MJ sesuai rasio format user + " --style raw --v 6"
-- prompt_dalle: natural language descriptive, lebih naratif, cocok untuk DALL-E 3
-- prompt_sd: prompt_image + "(masterpiece, best quality), 8k, detailed, cinematic lighting"
-- prompt_sd_negative: negative prompt umum untuk SD (low quality, blurry, watermark, text, deformed hands, etc.)
-- prompt_video: fokus ke GERAKAN & KAMERA, bukan hanya deskripsi statis. Contoh: "[SLOW ZOOM IN] candlelit medieval room, dust floating, tense atmosphere, cinematic 24fps"
+TENTANG PROMPT GAMBAR:
+
+1. FORMAT PROMPT SESUAI TARGET AI USER (targetAI):
+   - universal: "cinematic wide shot of ancient desert, warrior silhouette, golden hour"
+   - midjourney: base prompt + " --ar 16:9 --style raw --v 6" (--ar 9:16 untuk Shorts)
+   - dalle: natural language panjang, naratif. Contoh "A cinematic wide shot showing an ancient Arabian desert at golden hour with a warrior silhouette standing on a sand dune"
+   - sd: base prompt + ", (masterpiece, best quality), 8k, detailed, cinematic lighting" + isi prompt_sd_negative
+   - flux: natural language, tanpa parameter. Contoh "Ancient Arabian desert at golden hour, warrior standing on a dune, cinematic realistic"
+
+2. MODE PROMPT (modePrompt):
+   - per_scene: Isi "prompt_image" saja. prompts_gambar: []
+   - per_kalimat: Isi "prompts_gambar" array, MAKSIMAL 2 sub-prompt per scene. Setiap sub-prompt punya "waktu" (contoh "00:00-00:02") + "prompt". prompt_image tetap diisi sub-prompt pertama
+   - auto: AI tentukan. Narasi pendek (<12 kata) → 1 prompt. Narasi panjang → 2 sub-prompt
+
+3. PROMPT HARUS SESUAI NARASI:
+   - Prompt gambar WAJIB menggambarkan isi narasi
+   - Kalau narasi "bayangkan perutmu seperti drum" → prompt gambar perut sebagai drum
+   - Kalau narasi "3 juta orang meninggal" → prompt bisa grafik/timeline/angka besar
+   - JANGAN prompt generic. Harus spesifik.
+
+4. DETAIL & KUALITAS:
+   - Prompt minimal 20 kata
+   - Sertakan: subjek + aksi + setting + mood + komposisi
+   - Contoh bagus: "close-up of ancient bronze sword, weathered blade, dramatic shadows, dark background, cinematic lighting, highly detailed"
+   - HINDARI prompt pendek: "a cat", "sunset"
+
+5. prompt_video: ISI HANYA KALAU toggle video ON. Kalau OFF, isi "-".
+
+6. Prompt dalam Bahasa Inggris.
 
 Variasi diksi, jangan repetitif. Field opsional isi "-" jika tidak relevan.
 
@@ -296,7 +319,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 
   // ============ BUILD USER PROMPT ============
   function buildUserPrompt(opts) {
-    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo, mode, sumber, sumberData, angle } = opts;
+    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo, mode, sumber, sumberData, angle, targetAI, modePrompt } = opts;
     const styleDesc = STYLE_PROMPT[style] || STYLE_PROMPT['Realistis'];
     const isAuto = durasi === 'auto';
 
@@ -304,7 +327,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 Format: ${format} (${format === 'Shorts' ? '9:16 vertikal' : '16:9 horizontal'})
 Genre: ${genre}
 Style Gambar: ${style} — ${styleDesc}
-Konteks Tambahan: ${konteks || 'tidak ada'}`;
+Konteks Tambahan: ${konteks || 'tidak ada'}\nTarget AI: ${targetAI || 'universal'}\nMode Prompt: ${modePrompt || 'per_scene'}`;
 
     if (mode === 'commentary') {
       prompt += `\n\n=== MODE KOMENTAR/ANALISIS ===`;
@@ -422,10 +445,11 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       keyword_video: Array.isArray(s.keyword_video) ? s.keyword_video.slice(0, 3) : [],
       keyword_gambar: s.prompt_image || s.keyword_gambar || '',
       prompt_image: s.prompt_image || s.keyword_gambar || '',
-      prompt_midjourney: s.prompt_midjourney || '',
-      prompt_dalle: s.prompt_dalle || '',
-      prompt_sd: s.prompt_sd || '',
-      prompt_sd_negative: s.prompt_sd_negative || 'low quality, blurry, watermark, text, deformed',
+      prompts_gambar: Array.isArray(s.prompts_gambar) ? s.prompts_gambar.map(p => ({
+        waktu: p.waktu || '',
+        prompt: p.prompt || ''
+      })).filter(p => p.prompt) : [],
+      prompt_sd_negative: s.prompt_sd_negative || '',
       prompt_video: s.prompt_video || '',
       fakta_kunci: s.fakta_kunci || '-',
       sumber_hint: s.sumber_hint || '-'
@@ -658,7 +682,9 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         mode: opts.mode,
         sumber: opts.sumber,
         sumberData: opts.sumberData,
-        angle: opts.angle
+        angle: opts.angle,
+        targetAI: opts.targetAI,
+        modePrompt: opts.modePrompt
       });
 
       let result;

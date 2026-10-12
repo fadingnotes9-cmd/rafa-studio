@@ -142,6 +142,8 @@
 
     const durasiRaw = getRadioValue('durasi') || 'auto';
     const mode = getRadioValue('mode') || 'storyboard';
+    const targetAI = document.getElementById('target-ai')?.value || 'universal';
+    const modePrompt = document.getElementById('mode-prompt')?.value || 'per_scene';
     const sumber = getRadioValue('sumber') || 'topik';
     const angle = (document.getElementById('angle')?.value || '').trim();
 
@@ -182,6 +184,8 @@
       style: getRadioValue('style') || 'Realistis',
       konteks: els.konteks.value.trim(),
       includeVideo: !!document.getElementById('include-video')?.checked,
+      targetAI: targetAI,
+      modePrompt: modePrompt,
       mode: mode,
       sumber: sumber,
       sumberData: sumberData,
@@ -562,6 +566,74 @@
     return panel;
   }
 
+  // ============ PROMPT ACCORDION ============
+  function buildPromptAccordion(scene) {
+    const hasMain = scene.prompt_image && scene.prompt_image !== '-';
+    const prompts = Array.isArray(scene.prompts_gambar) ? scene.prompts_gambar.filter(p => p && p.prompt) : [];
+    const hasMulti = prompts.length > 0;
+    if (!hasMain && !hasMulti) return '';
+
+    const totalCount = (hasMain ? 1 : 0) + (hasMulti ? prompts.length : 0);
+    const label = totalCount > 1
+      ? `🎨 Prompt Gambar (${totalCount} varian)`
+      : '🎨 Prompt Gambar';
+
+    // Item utama
+    let items = '';
+    if (hasMain) {
+      items += `
+        <div class="prompt-card">
+          <div class="prompt-header">
+            <span class="prompt-icon">🎯</span>
+            <span class="prompt-label">Main Prompt</span>
+            <button class="prompt-copy" data-copy-key="main" data-copy-val="${escapeHtml(scene.prompt_image)}">📋 Copy</button>
+          </div>
+          <div class="prompt-text">${escapeHtml(scene.prompt_image)}</div>
+        </div>
+      `;
+    }
+
+    // Sub-prompt (per kalimat)
+    prompts.forEach((p, i) => {
+      items += `
+        <div class="prompt-card">
+          <div class="prompt-header">
+            <span class="prompt-icon">📖</span>
+            <span class="prompt-label">Sub ${i + 1} ${p.waktu ? '(' + escapeHtml(p.waktu) + ')' : ''}</span>
+            <button class="prompt-copy" data-copy-key="sub-${i}" data-copy-val="${escapeHtml(p.prompt)}">📋 Copy</button>
+          </div>
+          <div class="prompt-text">${escapeHtml(p.prompt)}</div>
+        </div>
+      `;
+    });
+
+    // Negative prompt kalau ada
+    let negBlock = '';
+    if (scene.prompt_sd_negative && scene.prompt_sd_negative !== '-') {
+      negBlock = `
+        <div class="prompt-neg">
+          <strong>🚫 Negative Prompt:</strong> ${escapeHtml(scene.prompt_sd_negative)}
+        </div>
+      `;
+    }
+
+    // Data attribute untuk copy-all
+    const allPrompts = [scene.prompt_image].concat(prompts.map(p => p.prompt)).filter(Boolean).join('\n\n');
+
+    return `
+      <details class="prompt-section">
+        <summary class="prompt-summary">
+          <span>${label}</span>
+          <button class="prompt-copy-all" data-copy-all="${escapeHtml(allPrompts)}" title="Copy semua">📋 Copy Semua</button>
+        </summary>
+        <div class="prompt-list">
+          ${items}
+          ${negBlock}
+        </div>
+      </details>
+    `;
+  }
+
   function buildSceneCard(scene, idx) {
     const card = document.createElement('div');
     card.className = 'scene-card';
@@ -681,6 +753,7 @@
         <div class="scene-keywords">${keywords}</div>
         ${mediaPreview}
         ${buildPromptCards(scene)}
+        ${buildPromptAccordion(scene)}
         <div class="scene-actions">
           <button class="btn btn-secondary btn-small" data-act="copy">📋 Copy Narasi</button>
           <button class="btn btn-secondary btn-small" data-act="regen-img">🔄 Ganti Gambar</button>
@@ -1189,6 +1262,22 @@ ${clip.transkrip_asli}
 
   // ============ PROMPT COPY HANDLER ============
   document.addEventListener("click", (e) => {
+    // Copy-all
+    const btnAll = e.target.closest("[data-copy-all]");
+    if (btnAll) {
+      e.preventDefault();
+      e.stopPropagation();
+      const val = btnAll.dataset.copyAll || "";
+      if (!val) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(val).then(
+          () => showToast("✅ Semua prompt dicopy", "success"),
+          () => showToast("Gagal copy", "error")
+        );
+      }
+      return;
+    }
+    // Copy single
     const btn = e.target.closest("[data-copy-key]");
     if (!btn) return;
     e.stopPropagation();

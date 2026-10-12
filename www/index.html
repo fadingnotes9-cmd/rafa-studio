@@ -105,6 +105,9 @@
           <option value="Sains">Sains</option>
           <option value="Politik">Politik</option>
           <option value="Ekonomi">Ekonomi</option>
+          <option value="Psikologi">Psikologi</option>
+          <option value="Kesehatan">Kesehatan</option>
+          <option value="Teknologi">Teknologi</option>
           <option value="Lainnya">Lainnya</option>
         </select>
       </div>
@@ -117,7 +120,30 @@
           <label class="radio"><input type="radio" name="style" value="Sketsa"><span>Sketsa (pencil, hand-drawn)</span></label>
           <label class="radio"><input type="radio" name="style" value="Anime"><span>Anime (studio ghibli style)</span></label>
           <label class="radio"><input type="radio" name="style" value="Watercolor"><span>Watercolor (soft brush)</span></label>
+          <label class="radio"><input type="radio" name="style" value="Flat 2D"><span>Flat 2D (cartoon, solid colors)</span></label>
         </div>
+      </div>
+
+      <div class="field">
+        <label for="target-ai">🎨 Target AI Generator</label>
+        <select id="target-ai">
+          <option value="universal" selected>🌐 Universal (cocok semua AI)</option>
+          <option value="midjourney">🖼️ Midjourney (--ar --style raw --v 6)</option>
+          <option value="dalle">🌌 DALL-E 3 (natural language)</option>
+          <option value="sd">⚙️ Stable Diffusion (+ negative prompt)</option>
+          <option value="flux">✨ Flux (natural + steps)</option>
+        </select>
+        <small class="field-hint">Prompt akan disesuaikan format untuk AI yang kamu pilih.</small>
+      </div>
+
+      <div class="field">
+        <label for="mode-prompt">📝 Mode Prompt Gambar</label>
+        <select id="mode-prompt">
+          <option value="per_scene" selected>🎯 Per Scene (hemat token, 1/scene)</option>
+          <option value="per_kalimat">📖 Per Kalimat (detail, max 2/scene)</option>
+          <option value="auto">🤖 Auto (AI tentukan)</option>
+        </select>
+        <small class="field-hint">Per Kalimat = lebih detail tapi token lebih banyak.</small>
       </div>
 
       <div class="field" id="field-konteks-storyboard">
