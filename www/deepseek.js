@@ -160,6 +160,16 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
 }
 `;
 
+  const URUTAN_BABAK = `
+ATURAN URUTAN BABAK (SANGAT PENTING):
+- Babak HARUS berurutan sesuai struktur: hook → intro → body → climax → refleksi → cta
+- DILARANG membuat babak "cta" atau "refleksi" sebelum babak "body" selesai
+- DILARANG kembali ke babak "body" setelah masuk "climax"
+- Contoh urutan BENAR: hook, hook, intro, intro, body, body, body, body, climax, refleksi, cta
+- Contoh urutan SALAH: hook, intro, body, climax, refleksi, body (← body muncul lagi setelah refleksi)
+- Setiap batch WAJIB memperhatikan posisi cerita saat ini (lihat BATCH INFO)
+- Kalau batch sebelumnya sudah masuk babak climax, batch berikutnya HARUS lanjut ke refleksi/cta, bukan balik ke body`;
+
   const ATURAN_OUTPUT = `
 ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
@@ -282,6 +292,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
       /nabi|rasul|muhammad|sahabat|islam|hijrah|badar|khandaq|khaibar|fathu|makkah|madinah|quran|qur'an|hadis/.test(j);
     if (isIslam) prompt += '\n' + SAFEGUARD_ISLAM;
 
+    prompt += '\n' + URUTAN_BABAK;
     if (mode === 'commentary') {
       prompt += '\n' + COMMENTARY_GUIDE;
       prompt += '\n' + STRUKTUR_COMMENTARY_SHORTS + '\n' + STRUKTUR_COMMENTARY_LONG;
@@ -338,12 +349,24 @@ Durasi: ${durasi} menit (~${durasi * 60} detik)`;
     }
 
     if (batchInfo) {
+      const posisi = batchInfo.current === 1
+        ? 'BATCH PERTAMA — mulai dari babak HOOK.'
+        : batchInfo.current === batchInfo.total
+          ? 'BATCH TERAKHIR — akhiri dengan babak CTA. JANGAN buat CTA/refleksi sebelum scene terakhir.'
+          : `BATCH KE-${batchInfo.current} DARI ${batchInfo.total} — lanjutkan alur cerita. JANGAN kembali ke babak yang sudah lewat.`;
+
       prompt += `
 
-INI BAGIAN ${batchInfo.current} DARI ${batchInfo.total}.
-Lanjutkan dari scene ke-${batchInfo.startScene} sampai scene ke-${batchInfo.endScene}.
+=== BATCH INFO ===
+${posisi}
+Scene range: ${batchInfo.startScene} sampai ${batchInfo.endScene}.
 Mulai "scene": ${batchInfo.startScene}, akhiri "scene": ${batchInfo.endScene}.
-JANGAN ulangi narasi scene sebelumnya. Lanjutkan alur cerita.`;
+
+ATURAN URUTAN:
+- Babak harus berurutan: hook → intro → body → climax → refleksi → cta
+- JANGAN buat CTA sebelum batch terakhir
+- JANGAN balik ke babak sebelumnya
+- Lanjutkan cerita secara natural dari scene sebelumnya`;
     }
 
     if (includeVideo) {
@@ -613,12 +636,12 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
         // Long Auto: batch 5 scene (aman untuk output lengkap + SEO)
         // Target ~30 scene = ~3 menit video (cukup untuk Shorts-long)
         // Untuk cerita lebih panjang, akan pakai multi-phase (fase berikutnya)
-        const LONG_AUTO_TOTAL = 30;
-        for (let i = 0; i < LONG_AUTO_TOTAL; i += 5) {
+        const LONG_AUTO_TOTAL = 48;
+        for (let i = 0; i < LONG_AUTO_TOTAL; i += 8) {
           batches.push({
             start: i + 1,
-            end: Math.min(i + 5, LONG_AUTO_TOTAL),
-            count: Math.min(5, LONG_AUTO_TOTAL - i)
+            end: Math.min(i + 8, LONG_AUTO_TOTAL),
+            count: Math.min(8, LONG_AUTO_TOTAL - i)
           });
         }
       } else {
