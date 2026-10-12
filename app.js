@@ -276,14 +276,24 @@
         : 'Meriset cerita dan menyusun kronologi...';
       setProgress(opts.mode === 'commentary' && opts.sumber === 'artikel' ? 15 : 5, progressMsg);
 
-      const scenes = await DeepSeek.generateStoryboard(opts, (info) => {
-        if (info.isAuto) {
-          setProgress(30, 'AI meriset & menyusun storyboard (mode Auto)...');
+      const genResult = await DeepSeek.generateStoryboard(opts, (info) => {
+        if (info.retry) {
+          setProgress(50, `Batch ${info.batch}/${info.totalBatches} gagal, retry...`);
+        } else if (info.isAuto && info.totalBatches === 1) {
+          setProgress(30, 'AI meriset & menyusun storyboard...');
         } else {
           const pct = 10 + (info.batch / info.totalBatches) * 40;
           setProgress(pct, `Batch ${info.batch}/${info.totalBatches} — scene ${info.startScene}-${info.endScene}...`);
         }
       });
+
+      // Extract scenes + seo dari return object baru
+      const scenes = genResult.scenes || genResult;
+      const seo = genResult.seo || null;
+
+      if (!scenes || !scenes.length) {
+        throw new Error('Tidak ada scene yang di-generate. Coba lagi.');
+      }
 
       if (state.abortGenerate) throw new Error('Dibatalkan oleh user');
 
@@ -339,14 +349,16 @@
         mode: opts.mode,
         sumber: opts.sumber,
         angle: opts.angle,
-        scenes: scenes
+        scenes: scenes,
+        seo: seo
       };
 
       // Render storyboard
       setTimeout(() => {
         renderStoryboard(state.currentProject);
         showPage('storyboard');
-        showToast(`✅ Storyboard selesai! ${scenes.length} scene`, 'success');
+        const seoInfo = seo ? ' + SEO' : '';
+        showToast(`✅ Storyboard selesai! ${scenes.length} scene${seoInfo}`, 'success');
       }, 500);
 
     } catch (err) {
@@ -387,9 +399,16 @@
       durasiLabel = project.durasi + ' menit';
     }
     const vidIcon = project.scenes[0] && project.scenes[0].prompt_video && project.scenes[0].prompt_video !== '-' ? ' 🎬' : '';
-    els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene${vidIcon}`;
+    const seoIcon = project.seo ? ' 📊' : '';
+    els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene${vidIcon}${seoIcon}`;
 
     els.sceneList.innerHTML = '';
+
+    // Render SEO panel di atas (kalau ada)
+    if (project.seo) {
+      els.sceneList.appendChild(buildSeoPanel(project.seo, project.format));
+    }
+
     project.scenes.forEach((s, idx) => {
       els.sceneList.appendChild(buildSceneCard(s, idx));
     });
@@ -428,6 +447,119 @@
       <summary class="prompt-summary">🎯 Prompt Siap Pakai (${items.filter(i => i.val && i.val !== "-").length})</summary>
       <div class="prompt-list">${cards}</div>
     </details>`;
+  }
+
+  // ============ SEO PANEL ============
+  function buildSeoPanel(seo, format) {
+    const panel = document.createElement('div');
+    panel.className = 'seo-panel';
+
+    const hashtags = (seo.hashtags || []).map(h => `<span class="seo-hashtag">${escapeHtml(h)}</span>`).join('');
+
+    panel.innerHTML = `
+      <details class="seo-section">
+        <summary class="seo-summary">
+          <span class="seo-icon">📊</span>
+          <span class="seo-title">SEO YouTube (Klik untuk buka)</span>
+          <span class="seo-badge">✨ AI Generated</span>
+        </summary>
+        <div class="seo-body">
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">📺 YouTube Title</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.youtube_title || '')}">📋</button>
+            </div>
+            <div class="seo-value">${escapeHtml(seo.youtube_title || '-')}</div>
+          </div>
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">📝 Description</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.youtube_description || '')}">📋</button>
+            </div>
+            <div class="seo-value seo-value-multiline">${escapeHtml(seo.youtube_description || '-')}</div>
+          </div>
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">🏷️ Tags (500 char max)</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.youtube_tags || '')}">📋</button>
+            </div>
+            <div class="seo-value seo-mono">${escapeHtml(seo.youtube_tags || '-')}</div>
+          </div>
+
+          <div class="seo-row-2">
+            <div class="seo-item">
+              <div class="seo-item-header">
+                <span class="seo-label">🔍 Meta Title</span>
+                <button class="seo-copy" data-copy="${escapeHtml(seo.seo_meta_title || '')}">📋</button>
+              </div>
+              <div class="seo-value">${escapeHtml(seo.seo_meta_title || '-')}</div>
+            </div>
+            <div class="seo-item">
+              <div class="seo-item-header">
+                <span class="seo-label">🔍 Meta Desc</span>
+                <button class="seo-copy" data-copy="${escapeHtml(seo.seo_meta_description || '')}">📋</button>
+              </div>
+              <div class="seo-value">${escapeHtml(seo.seo_meta_description || '-')}</div>
+            </div>
+          </div>
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">#️⃣ Hashtags</span>
+              <button class="seo-copy" data-copy="${escapeHtml((seo.hashtags || []).join(' '))}">📋</button>
+            </div>
+            <div class="seo-hashtags">${hashtags || '-'}</div>
+          </div>
+
+          ${format === 'Long' && seo.chapters && seo.chapters !== '-' ? `
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">📑 Chapters</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.chapters)}">📋</button>
+            </div>
+            <div class="seo-value seo-mono">${escapeHtml(seo.chapters)}</div>
+          </div>` : ''}
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">🖼️ Thumbnail Prompt</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.thumbnail_prompt || '')}">📋</button>
+            </div>
+            <div class="seo-value seo-mono">${escapeHtml(seo.thumbnail_prompt || '-')}</div>
+            ${seo.thumbnail_text_suggestion ? `<div class="seo-thumb-text"><strong>Text Overlay:</strong> ${escapeHtml(seo.thumbnail_text_suggestion)}</div>` : ''}
+          </div>
+
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">💬 Pinned Comment</span>
+              <button class="seo-copy" data-copy="${escapeHtml(seo.pinned_comment || '')}">📋</button>
+            </div>
+            <div class="seo-value">${escapeHtml(seo.pinned_comment || '-')}</div>
+          </div>
+
+        </div>
+      </details>
+    `;
+
+    // Copy handler
+    panel.addEventListener('click', (e) => {
+      const btn = e.target.closest('.seo-copy');
+      if (!btn) return;
+      e.stopPropagation();
+      const text = btn.dataset.copy;
+      if (!text) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(
+          () => showToast('✅ SEO dicopy', 'success'),
+          () => showToast('Gagal copy', 'error')
+        );
+      }
+    });
+
+    return panel;
   }
 
   function buildSceneCard(scene, idx) {

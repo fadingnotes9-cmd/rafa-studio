@@ -144,7 +144,19 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
       "fakta_kunci": "17 Ramadan 2 H / 13 Maret 624 M",
       "sumber_hint": "buku sejarah"
     }
-  ]
+  ],
+  "seo": {
+    "youtube_title": "judul YouTube optimal (max 70 char, SEO-friendly, curiosity-driven)",
+    "youtube_description": "deskripsi YouTube lengkap (200-500 kata, paragraf + bullet + hashtag)",
+    "youtube_tags": "tag dipisah koma (max 500 char total, 15-20 tag relevan)",
+    "seo_meta_title": "meta title 60 char untuk SEO",
+    "seo_meta_description": "meta description 155 char untuk SEO",
+    "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
+    "chapters": "timestamp chapter untuk deskripsi (khusus Long, format: 00:00 Intro\n00:45 Babak 1\n...)",
+    "thumbnail_prompt": "prompt thumbnail YouTube 1280x720 (English), cinematic, high contrast, focal point jelas, ruang untuk text overlay",
+    "thumbnail_text_suggestion": "3-5 kata text overlay untuk thumbnail (Bahasa Indonesia)",
+    "pinned_comment": "komentar pertama dari creator (pemicu diskusi atau pertanyaan)"
+  }
 }
 `;
 
@@ -162,6 +174,25 @@ TENTANG 4 PROMPT GAMBAR/VIDEO:
 - prompt_video: fokus ke GERAKAN & KAMERA, bukan hanya deskripsi statis. Contoh: "[SLOW ZOOM IN] candlelit medieval room, dust floating, tense atmosphere, cinematic 24fps"
 
 Variasi diksi, jangan repetitif. Field opsional isi "-" jika tidak relevan.
+
+TENTANG SEO OUTPUT (di luar array scenes):
+- youtube_title: max 70 char, curiosity-driven, ada angka/kata kuat kalau relevan
+- youtube_description: 200-500 kata, paragraf pembuka + bullet chapter + hashtag di akhir
+- youtube_tags: 15-20 tag dipisah koma, total max 500 char, mix broad + niche
+- seo_meta_title: max 60 char (bisa beda dari youtube_title)
+- seo_meta_description: max 155 char (fokus ke klik, ada CTA halus)
+- hashtags: 5 hashtag paling relevan (Bahasa Indonesia + English mix)
+- chapters: HANYA untuk Long format. Format "MM:SS Judul\n" per baris. Untuk Shorts isi "-"
+- thumbnail_prompt: WAJIB English, deskriptif cinematic, 1280x720, high contrast, fokus 1 subjek, ada ruang untuk text
+- thumbnail_text_suggestion: 3-5 kata Indonesia, punchy, bukan clickbait murahan
+- pinned_comment: 1-2 kalimat pemicu diskusi atau pertanyaan terbuka
+
+Adaptasi tone sesuai genre:
+- Sejarah: akademik + dramatis + rasa penasaran
+- Agama: sakral + penuh hikmah
+- Sains: teknis + mengagumkan
+- Politik: analitis + netral (hindari bias)
+
 Output HANYA JSON, tanpa teks pembuka/penutup.`;
 
   // ============ CLIP FINDER PROMPTS ============
@@ -447,7 +478,9 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     }
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
-    return scenes;
+    // Return object dengan seo (opsional)
+    const seo = parsed && parsed.seo ? parsed.seo : null;
+    return { scenes: scenes, seo: seo };
   }
 
   // <<< APPEND_CHUNK_3 >>>
@@ -557,15 +590,28 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
   // ============ GENERATE STORYBOARD ============
   async function generateStoryboard(opts, onProgress) {
     const isAuto = opts.durasi === 'auto';
-    const BATCH_SIZE = 35; // turun dari 50 karena output per scene lebih kaya
+    const isLong = opts.format === 'Long';
+    // Long Auto = butuh batching lebih kecil karena output besar (4 prompt/scene)
+    // Shorts Auto = 1 call cukup (maks ~12 scene)
+    const BATCH_SIZE = isLong ? 20 : 35;
 
     let totalScenes = 0;
     let batches = [];
 
     if (isAuto) {
-      // Auto: 1 batch, AI tentukan
-      batches = [{ start: 1, end: null, count: null }];
-      totalScenes = -1; // unknown
+      if (isLong) {
+        // Long Auto: batching 3x20 = ~60 scene max
+        // Ini batas realistis untuk sekali generate Long Auto
+        batches = [
+          { start: 1,  end: 20, count: 20 },
+          { start: 21, end: 40, count: 20 },
+          { start: 41, end: 60, count: 20 }
+        ];
+      } else {
+        // Shorts Auto: 1 batch, AI tentukan (maks 12 scene)
+        batches = [{ start: 1, end: null, count: null }];
+      }
+      totalScenes = -1;
     } else {
       totalScenes = estimateScenes(opts.durasi);
       for (let i = 0; i < totalScenes; i += BATCH_SIZE) {
@@ -580,6 +626,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode);
     const allScenes = [];
     const totalBatches = batches.length;
+    let capturedSeo = null;
 
     for (let b = 0; b < totalBatches; b++) {
       const batch = batches[b];
@@ -594,7 +641,8 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         });
       }
 
-      const batchInfo = (!isAuto && totalBatches > 1)
+      // Auto Long juga butuh batchInfo karena multi-call
+      const batchInfo = (totalBatches > 1)
         ? { current: b + 1, total: totalBatches, startScene: batch.start, endScene: batch.end }
         : null;
 
@@ -613,15 +661,39 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         angle: opts.angle
       });
 
-      const scenes = await callAPI(systemPrompt, userPrompt);
-      // Normalize tiap scene
-      const normalized = scenes.map((s, i) => normalizeScene(s, allScenes.length + i));
+      let result;
+      try {
+        result = await callAPI(systemPrompt, userPrompt);
+      } catch (e) {
+        console.warn('Batch ' + (b + 1) + ' gagal, retry sekali...', e.message);
+        if (onProgress) {
+          onProgress({
+            batch: b + 1,
+            totalBatches: totalBatches,
+            startScene: batch.start,
+            endScene: batch.end,
+            countSoFar: allScenes.length,
+            isAuto: isAuto,
+            retry: true
+          });
+        }
+        result = await callAPI(systemPrompt, userPrompt);
+      }
+      // Extract scenes + seo
+      const batchScenes = result.scenes || result;
+      const batchSeo = result.seo || null;
+      if (batchSeo && !capturedSeo) capturedSeo = batchSeo;
+      const normalized = batchScenes.map((s, i) => normalizeScene(s, allScenes.length + i));
       allScenes.push(...normalized);
     }
 
     // Recompute timestamps global
     const fixedScenes = recomputeTimestamps(allScenes);
-    return fixedScenes;
+    // Return object dengan seo (bisa null kalau AI tidak generate)
+    return {
+      scenes: fixedScenes,
+      seo: capturedSeo
+    };
   }
 
   // ============ PUBLIC API ============

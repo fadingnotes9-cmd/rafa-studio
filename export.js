@@ -283,6 +283,71 @@ const Exporter = (() => {
     return out;
   }
 
+  // ============ EXPORT SEO (TXT) ============
+  function seoToTXT(project) {
+    const seo = project.seo;
+    if (!seo) throw new Error('Project ini tidak punya output SEO');
+    const isLong = project.format === 'Long';
+
+    let out = '';
+    out += '═══════════════════════════════════════════════════════\n';
+    out += '  SEO PACK — ' + (project.judul || '') + '\n';
+    out += '  Rafa Studio\n';
+    out += '═══════════════════════════════════════════════════════\n\n';
+    out += 'Format  : ' + project.format + '\n';
+    out += 'Genre   : ' + (project.genre || '-') + '\n';
+    out += 'Scene   : ' + (project.scenes ? project.scenes.length : 0) + '\n';
+    out += 'Generated: ' + new Date(project.updatedAt || Date.now()).toLocaleString('id-ID') + '\n\n';
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '📺 YOUTUBE TITLE\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += (seo.youtube_title || '-') + '\n\n';
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '📝 YOUTUBE DESCRIPTION\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += (seo.youtube_description || '-') + '\n\n';
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '🏷️ YOUTUBE TAGS\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += (seo.youtube_tags || '-') + '\n\n';
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '🔍 SEO META\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += 'Meta Title  : ' + (seo.seo_meta_title || '-') + '\n';
+    out += 'Meta Desc   : ' + (seo.seo_meta_description || '-') + '\n\n';
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '#️⃣ HASHTAGS\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += ((seo.hashtags || []).join(' ') || '-') + '\n\n';
+
+    if (isLong && seo.chapters && seo.chapters !== '-') {
+      out += '───────────────────────────────────────────────────────\n';
+      out += '📑 CHAPTERS (untuk deskripsi)\n';
+      out += '───────────────────────────────────────────────────────\n';
+      out += seo.chapters + '\n\n';
+    }
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '🖼️ THUMBNAIL PROMPT\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += (seo.thumbnail_prompt || '-') + '\n\n';
+    if (seo.thumbnail_text_suggestion) {
+      out += 'Text Overlay: ' + seo.thumbnail_text_suggestion + '\n\n';
+    }
+
+    out += '───────────────────────────────────────────────────────\n';
+    out += '💬 PINNED COMMENT\n';
+    out += '───────────────────────────────────────────────────────\n';
+    out += (seo.pinned_comment || '-') + '\n';
+
+    return out;
+  }
+
   // ============ MAIN EXPORT ============
   async function exportProject(project, format) {
     if (!project) throw new Error('Project tidak valid');
@@ -309,6 +374,12 @@ const Exporter = (() => {
         default:
           throw new Error('Format tidak dikenal: ' + format);
       }
+      return;
+    }
+
+    // SEO only
+    if (format === 'seo') {
+      downloadFile(`${slug}-seo-${stamp}.txt`, seoToTXT(project));
       return;
     }
 
@@ -341,6 +412,7 @@ const Exporter = (() => {
     exportProject,
     toTXT, toScript, toCSV, toJSON, toSRT,
     clipsToCSV, clipsToScript, clipsToJSON, clipsToSRT,
+    seoToTXT,
     _secToTimestamp: secToTimestamp,
     _secToSrtTime: secToSrtTime
   };
