@@ -135,12 +135,12 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
       "sfx": "heartbeat",
       "durasi_ideal": 5,
       "keyword_video": ["english keyword 1", "english keyword 2"],
-      "prompt_image": "english base image prompt - universal, no params",
-      "prompt_midjourney": "english prompt + --ar X:Y --style raw --v 6",
-      "prompt_dalle": "english natural language prompt for DALL-E 3",
-      "prompt_sd": "english prompt + (masterpiece, best quality), 8k, detailed",
-      "prompt_sd_negative": "low quality, blurry, watermark, text, deformed",
-      "prompt_video": "camera movement + scene description untuk Runway/Kling/Sora, contoh: [SLOW PAN] ancient city, dust rising, golden hour, cinematic 24fps",
+      "prompt_image": "english base image prompt - universal untuk semua AI generator (WAJIB untuk semua format)",
+      "prompt_midjourney": "isi hanya kalau FORMAT=Shorts. Kalau Long, isi '-'",
+      "prompt_dalle": "isi hanya kalau FORMAT=Shorts. Kalau Long, isi '-'",
+      "prompt_sd": "isi hanya kalau FORMAT=Shorts. Kalau Long, isi '-'",
+      "prompt_sd_negative": "isi hanya kalau FORMAT=Shorts. Kalau Long, isi '-'",
+      "prompt_video": "camera movement + scene description. Isi hanya kalau user aktifkan toggle video, kalau tidak isi '-'",
       "fakta_kunci": "17 Ramadan 2 H / 13 Maret 624 M",
       "sumber_hint": "buku sejarah"
     }
@@ -165,13 +165,15 @@ ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_midjourney, prompt_dalle, prompt_sd, prompt_sd_negative, prompt_video
 
-TENTANG 4 PROMPT GAMBAR/VIDEO:
-- prompt_image: base prompt universal English, deskriptif adegan tanpa parameter. Sesuaikan setting dengan topik (contoh: "Perang Badar" → arabian desert; "Revolusi Industri" → 18th century London factory; "Lubang Hitam" → space black hole accretion disk)
-- prompt_midjourney: prompt_image + parameter MJ sesuai rasio format user + " --style raw --v 6"
-- prompt_dalle: natural language descriptive, lebih naratif, cocok untuk DALL-E 3
-- prompt_sd: prompt_image + "(masterpiece, best quality), 8k, detailed, cinematic lighting"
-- prompt_sd_negative: negative prompt umum untuk SD (low quality, blurry, watermark, text, deformed hands, etc.)
-- prompt_video: fokus ke GERAKAN & KAMERA, bukan hanya deskripsi statis. Contoh: "[SLOW ZOOM IN] candlelit medieval room, dust floating, tense atmosphere, cinematic 24fps"
+TENTANG PROMPT GAMBAR/VIDEO:
+- prompt_image: WAJIB untuk semua format. Base prompt universal English, deskriptif adegan tanpa parameter. Sesuaikan setting dengan topik.
+- prompt_midjourney, prompt_dalle, prompt_sd, prompt_sd_negative: ISI HANYA KALAU FORMAT=Shorts. Kalau Long, isi "-" (hemat token).
+- prompt_video: ISI HANYA KALAU user aktifkan toggle video. Kalau tidak, isi "-".
+
+Contoh prompt_image yang bagus:
+- "Perang Badar" → "ancient arabian desert battle, soldiers in formation, dust rising, cinematic golden hour"
+- "Revolusi Industri" → "18th century London factory, steam engines, workers, smoke chimneys, cinematic"
+- "Lubang Hitam" → "supermassive black hole accretion disk, cosmic scale, gravitational lensing, deep space"
 
 Variasi diksi, jangan repetitif. Field opsional isi "-" jika tidak relevan.
 
@@ -453,8 +455,7 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
         { role: 'user', content: userPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 8000,
-      response_format: { type: 'json_object' }
+      max_tokens: 8000
     };
 
     const res = await fetch(ENDPOINT, {
@@ -602,23 +603,24 @@ Ingat: output JSON object dengan key "scenes" + "seo". Tanpa markdown, tanpa tek
     const isLong = opts.format === 'Long';
     // Long Auto = butuh batching lebih kecil karena output besar (4 prompt/scene)
     // Shorts Auto = 1 call cukup (maks ~12 scene)
-    const BATCH_SIZE = isLong ? 10 : 35;
+    const BATCH_SIZE = isLong ? 5 : 35;
 
     let totalScenes = 0;
     let batches = [];
 
     if (isAuto) {
       if (isLong) {
-        // Long Auto: 6 batch × 10 scene = ~60 scene max
-        // 10 scene/batch lebih aman karena output per scene besar (4 prompt + SEO)
-        batches = [
-          { start: 1,  end: 10, count: 10 },
-          { start: 11, end: 20, count: 10 },
-          { start: 21, end: 30, count: 10 },
-          { start: 31, end: 40, count: 10 },
-          { start: 41, end: 50, count: 10 },
-          { start: 51, end: 60, count: 10 }
-        ];
+        // Long Auto: batch 5 scene (aman untuk output lengkap + SEO)
+        // Target ~30 scene = ~3 menit video (cukup untuk Shorts-long)
+        // Untuk cerita lebih panjang, akan pakai multi-phase (fase berikutnya)
+        const LONG_AUTO_TOTAL = 30;
+        for (let i = 0; i < LONG_AUTO_TOTAL; i += 5) {
+          batches.push({
+            start: i + 1,
+            end: Math.min(i + 5, LONG_AUTO_TOTAL),
+            count: Math.min(5, LONG_AUTO_TOTAL - i)
+          });
+        }
       } else {
         // Shorts Auto: 1 batch, AI tentukan (maks 12 scene)
         batches = [{ start: 1, end: null, count: null }];
