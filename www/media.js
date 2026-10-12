@@ -305,6 +305,33 @@ const Media = (() => {
     return !!(keys.cloudflare_id && keys.cloudflare_token);
   }
 
+  // Pre-clean prompt — hilangkan kata yang sering trigger NSFW false positive
+  function sanitizePrompt(prompt) {
+    if (!prompt) return '';
+    let p = prompt;
+    // Ganti kata yang sering trigger NSFW
+    const replacements = {
+      '\\bbody\\b': 'figure',
+      '\\bnaked\\b': 'plain',
+      '\\bbare\\b': 'simple',
+      '\\bstomach\\b': 'torso area',
+      '\\bbelly\\b': 'middle area',
+      '\\bchest\\b': 'upper torso',
+      '\\bskin\\b': 'surface',
+      '\\bflesh\\b': 'tissue',
+      '\\bblood\\b': 'red color',
+      '\\bdead\\b': 'still',
+      '\\bdeath\\b': 'ending',
+      '\\bkilling\\b': 'action',
+      '\\bkill\\b': 'stop',
+      '\\bviolence\\b': 'intensity'
+    };
+    Object.keys(replacements).forEach(k => {
+      p = p.replace(new RegExp(k, 'gi'), replacements[k]);
+    });
+    return p;
+  }
+
   async function generateCloudflareImage(prompt, opts) {
     opts = opts || {};
     const keys = getKeys();
@@ -313,52 +340,83 @@ const Media = (() => {
     }
 
     const url = CF_ENDPOINT_BASE + keys.cloudflare_id + '/ai/run/' + CF_MODEL;
+    const attempt = opts._attempt || 1;
 
-    // Flux Schnell: parameter hanya prompt, steps, seed
-    // Width & height TIDAK didukung — model fixed size (1024x1024)
+    // Prompt yang berbeda-beda per attempt
+    let finalPrompt = sanitizePrompt(prompt);
+    if (attempt === 1) {
+      finalPrompt = finalPrompt;
+    } else if (attempt === 2) {
+      finalPrompt = 'clean educational illustration, ' + finalPrompt + ', simple cartoon style, family friendly, safe for work';
+    } else if (attempt >= 3) {
+      finalPrompt = 'minimalist flat icon illustration, ' + finalPrompt.split(',')[0] + ', educational graphic design, clean vector art';
+    }
+
     const body = {
-      prompt: prompt,
+      prompt: finalPrompt,
       steps: 4
     };
     if (opts.seed) body.seed = opts.seed;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + keys.cloudflare_token,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + keys.cloudflare_token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (e) {
+      // Network error — retry max 2x dengan delay
+      if (attempt < 3) {
+        await new Promise(r => setTimeout(r, 1500 * attempt));
+        return generateCloudflareImage(prompt, { ...opts, _attempt: attempt + 1 });
+      }
+      throw new Error('Network error: ' + e.message);
+    }
 
     if (!res.ok) {
-      let errMsg = 'Cloudflare error (' + res.status + ')';
+      let errMsg = 'Cloudflare (' + res.status + ')';
       let isNSFW = false;
+      let isRateLimit = false;
+
       try {
         const errData = await res.json();
-        if (errData.errors && errData.errors[0] && errData.errors[0].message) {
-          errMsg += ': ' + errData.errors[0].message;
-          if (errMsg.toLowerCase().includes('nsfw')) isNSFW = true;
+        if (errData.errors && errData.errors[0]) {
+          const em = errData.errors[0].message || '';
+          errMsg += ': ' + em.slice(0, 100);
+          if (em.toLowerCase().includes('nsfw')) isNSFW = true;
+          if (em.toLowerCase().includes('rate') || em.toLowerCase().includes('too many')) isRateLimit = true;
         }
       } catch (e) {
         try {
           const txt = await res.text();
-          errMsg += ': ' + txt.slice(0, 150);
-          if (errMsg.toLowerCase().includes('nsfw')) isNSFW = true;
+          errMsg += ': ' + txt.slice(0, 100);
+          if (txt.toLowerCase().includes('nsfw')) isNSFW = true;
+          if (txt.toLowerCase().includes('rate')) isRateLimit = true;
         } catch (e2) {}
       }
-      // Auto-retry dengan prompt yang diperhalus kalau NSFW false positive
-      if (isNSFW && !opts._retrySfw) {
-        console.warn('NSFW false positive, retry dengan prompt diperhalus');
-        const safePrompt = prompt + ', wholesome educational illustration, family-friendly, clean, positive vibes';
-        return generateCloudflareImage(safePrompt, { ...opts, _retrySfw: true });
+
+      // Retry NSFW dengan prompt berbeda (max 3 attempt)
+      if (isNSFW && attempt < 3) {
+        console.warn('[CF] NSFW attempt ' + attempt + ' — retry dengan prompt diperhalus');
+        await new Promise(r => setTimeout(r, 800));
+        return generateCloudflareImage(prompt, { ...opts, _attempt: attempt + 1, seed: Math.floor(Math.random() * 999999) });
       }
+
+      // Retry rate limit dengan delay lebih lama
+      if (isRateLimit && attempt < 3) {
+        console.warn('[CF] Rate limit — tunggu 5 detik...');
+        await new Promise(r => setTimeout(r, 5000));
+        return generateCloudflareImage(prompt, { ...opts, _attempt: attempt + 1 });
+      }
+
       throw new Error(errMsg);
     }
 
-    // Response = binary image (JPEG/PNG)
     const blob = await res.blob();
-    // Convert ke base64 data URL untuk portability
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result);

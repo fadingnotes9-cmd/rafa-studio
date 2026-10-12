@@ -1416,7 +1416,10 @@ ${clip.transkrip_asli}
   async function generateAllImages(segments, opts, onProgress) {
     opts = opts || {};
     const useCloudflare = opts.useCloudflare !== false && Media.hasCloudflareKeys();
-    const CONCURRENCY = useCloudflare ? 3 : 2;
+    // Cloudflare: SERIAL (1 request) untuk hindari rate limit
+    // Pollinations: 2 paralel
+    const CONCURRENCY = useCloudflare ? 1 : 2;
+    const DELAY_BETWEEN = useCloudflare ? 1200 : 0; // ms delay antar request CF
     const MAX_RETRY = opts.autoRetry ? 2 : 0;
     const total = segments.length;
 
@@ -1471,6 +1474,10 @@ ${clip.transkrip_asli}
         chunk.push(processOne(j));
       }
       await Promise.all(chunk);
+      // Delay antar batch untuk hindari rate limit
+      if (DELAY_BETWEEN > 0 && i + CONCURRENCY < total) {
+        await new Promise(r => setTimeout(r, DELAY_BETWEEN));
+      }
     }
 
     return { segments: results, failed: failed, total: total, provider: useCloudflare ? 'cloudflare' : 'pollinations' };
