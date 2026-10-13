@@ -1314,6 +1314,50 @@ html, body {
   color: var(--text-muted);
 }
 .scene-img { background: rgba(255, 255, 255, 0.04); }
+
+/* ============ NARASI TTS (CapCut) ============ */
+.narasi-tts {
+  margin: 8px 0;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  overflow: hidden;
+}
+.narasi-tts > summary {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #94a3b8;
+  user-select: none;
+  list-style: none;
+}
+.narasi-tts > summary::-webkit-details-marker { display: none; }
+.narasi-tts > summary::before {
+  content: "▶ ";
+  display: inline-block;
+  transition: transform 0.2s;
+  margin-right: 4px;
+}
+.narasi-tts[open] > summary::before { transform: rotate(90deg); }
+.narasi-tts[open] > summary { border-bottom: 1px solid #334155; }
+.narasi-tts-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.narasi-tts-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-style: italic;
+  padding: 8px 10px;
+  background: #1e293b;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 4px;
+  user-select: all;
+}
+.narasi-tts button { align-self: flex-start; }
 .scene-narasi {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(99, 102, 241, 0.08));
   border-left: 3px solid var(--brand-1);

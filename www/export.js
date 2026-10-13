@@ -102,7 +102,7 @@ const Exporter = (() => {
     out += '\n' + '='.repeat(60) + '\n\n';
 
     project.scenes.forEach(s => {
-      out += s.narasi + '\n\n';
+      out += (s.narasi_tts || s.narasi) + '\n\n';
     });
 
     return out;
@@ -154,7 +154,7 @@ const Exporter = (() => {
 
   // ============ EXPORT CSV (lengkap, v2) ============
   function toCSV(project) {
-    const header = ['scene', 'babak', 'start', 'end', 'durasi_ideal', 'narasi', 'onscreen_text', 'visual', 'sensory_detail', 'analogy', 'tokoh', 'emosi', 'mood', 'shot_type', 'visual_metaphor', 'hook_type', 'open_loop', 'cliffhanger', 'pattern_interrupt', 'broll', 'fakta_kunci', 'sumber_hint', 'keyword_video', 'keyword_gambar'];
+    const header = ['scene', 'babak', 'start', 'end', 'durasi_ideal', 'narasi', 'narasi_tts', 'onscreen_text', 'visual', 'sensory_detail', 'analogy', 'tokoh', 'emosi', 'mood', 'shot_type', 'visual_metaphor', 'hook_type', 'open_loop', 'cliffhanger', 'pattern_interrupt', 'broll', 'fakta_kunci', 'sumber_hint', 'keyword_video', 'keyword_gambar'];
     const rows = [header.join(',')];
 
     project.scenes.forEach(s => {
@@ -165,6 +165,7 @@ const Exporter = (() => {
         secToTimestamp(s.end),
         s.durasi_ideal || 5,
         csvEscape(s.narasi),
+        csvEscape(s.narasi_tts || s.narasi),
         csvEscape(s.onscreen_text || ''),
         csvEscape(s.visual),
         csvEscape(s.sensory_detail || ''),

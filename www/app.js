@@ -699,6 +699,15 @@
       <div class="scene-body">
         ${imgTag}
         <div class="scene-narasi">${escapeHtml(scene.narasi)}</div>
+        ${scene.narasi_tts ? `
+          <details class="narasi-tts">
+            <summary>🔊 Narasi TTS (CapCut)</summary>
+            <div class="narasi-tts-body">
+              <div class="narasi-tts-text">${escapeHtml(scene.narasi_tts)}</div>
+              <button class="btn btn-secondary btn-small" data-tts-copy="${escapeHtml(scene.narasi_tts)}">📋 Copy TTS</button>
+            </div>
+          </details>
+        ` : ''}
         ${onscreenHtml}
         <div class="scene-meta"><strong>Visual:</strong> ${escapeHtml(scene.visual)}</div>
         ${scene.visual_metaphor ? `<div class="scene-meta"><strong>🎯 Fokus:</strong> ${escapeHtml(scene.visual_metaphor)}</div>` : ''}
@@ -1220,6 +1229,21 @@ ${clip.transkrip_asli}
 
   // ============ PROMPT COPY HANDLER ============
   document.addEventListener("click", (e) => {
+    // TTS copy
+    const btnTts = e.target.closest("[data-tts-copy]");
+    if (btnTts) {
+      e.preventDefault();
+      e.stopPropagation();
+      const val = btnTts.dataset.ttsCopy || "";
+      if (!val) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(val).then(
+          () => showToast("✅ Narasi TTS dicopy", "success"),
+          () => showToast("Gagal copy", "error")
+        );
+      }
+      return;
+    }
     // Copy-all
     const btnAll = e.target.closest("[data-copy-all]");
     if (btnAll) {
