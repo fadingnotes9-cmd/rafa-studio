@@ -170,7 +170,7 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
 ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood, visual_metaphor
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
-- TEXT DI DALAM GAMBAR: SEMUA text di dalam gambar WAJIB Bahasa Indonesia, TERMASUK istilah teknis (jangan tulis "Gut-Brain Axis" tapi "Jalur Otak-Usus", jangan "Cortisol" tapi "Kortisol", jangan "DNA" tapi "DNA" boleh karena sudah umum). Singkatan asing yang sudah jadi istilah Indonesia populer boleh tetap (DNA, RAM, VR, EEG). Text maksimal 4 kata. Contoh yang BENAR: label "STRES", tulisan "OTAK DALAM BAHAYA", label "JALUR OTAK-USUS", label "KORTISOL". Contoh yang SALAH: "Gut-Brain Axis", "Cortisol Level", "Working Memory". WAJIB tulis di prompt_image dengan format: with text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh: "...with bold text "STRES" on the button...", "...with caption "OTAK DALAM BAHAYA" at the top...".
+- TEXT DI DALAM GAMBAR: WAJIB 100% Bahasa Indonesia. TERMASUK istilah teknis panjang (jangan tulis "Default Mode Network" tapi "JARINGAN MODE MELAMUN", jangan "Gut-Brain Axis" tapi "JALUR OTAK-USUS", jangan "Working Memory" tapi "MEMORI KERJA"). YANG BOLEH ENGLISH HANYA akronim universal: DNA, RAM, VR, EEG, AI, WHO. Text maksimal 4 kata, huruf kapital semua. WAJIB tulis di prompt_image dengan format: with bold text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh BENAR: "...with bold text "SINYAL OTAK" on the megaphone...", "...with caption "JARINGAN MODE MELAMUN" at the top...", "...with text "TANDA BAHAYA" in red...". Contoh SALAH: "Default Mode Network", "Cortisol", "Working Memory", "Central Fatigue". Setiap scene WAJIB punya minimal 1 text Indonesia di prompt_image-nya.
 
 TENTANG PROMPT GAMBAR:
 
@@ -668,16 +668,20 @@ ATURAN STRUKTUR BABAK (WAJIB DIPATUHI):
 - CTA (3-5%): ajakan engagement
 
 ATURAN KETAT ANTI-DUPLIKASI:
-1. Setiap poin di outline HARUS UNIK. JANGAN pakai studi/eksperimen/istilah yang sama 2x di scene berbeda. Contoh: kalau scene 8 bahas "eksperimen Radvansky 2011", JANGAN bahas lagi di scene 15.
+1. Setiap poin di outline HARUS UNIK. JANGAN pakai studi/eksperimen/istilah yang sama 2x di scene berbeda.
 2. TIPS PRAKTIS (cara mengatasi) HANYA boleh di REFLEKSI. DILARANG taruh tips di BODY atau CLIMAX.
 3. Kapan harus waspada / bahaya / penyakit HANYA di akhir Sub-3 BODY, JANGAN nyelip di tengah tips.
 4. JANGAN taruh solusi sebelum CLIMAX — penonton harus dibawa ke puncak dulu.
-5. Setiap scene body harus jawab SATU pertanyaan spesifik. Kalau jawabannya sama, artinya duplikat — pilih salah satu.
+5. Setiap scene body harus jawab SATU pertanyaan spesifik. Kalau jawabannya sama, artinya duplikat.
 6. Setiap topik yang muncul di body, pastikan TIDAK muncul lagi di sub-gelombang berikutnya.
+7. ATURAN FAKTA NUMERIK: Setiap fakta numerik/statistik/angka (contoh: "otak 2% dari berat tubuh, konsumsi 20% energi", "60-80 notifikasi per hari", "tidur 8 jam") HANYA boleh muncul di SATU scene saja. Kalau sudah dipakai, JANGAN sebut angka yang sama di scene lain. Cek dulu sebelum tulis: "apakah angka ini sudah dipakai?".
 
-KARAKTER UTAMA:
-- Deskripsikan detail KALAU cerita butuh karakter berulang (contoh: "Rafa, pria 25 tahun, rambut hitam pendek rapi, kemeja biru lengan panjang, ekspresi ramah").
-- Kalau tidak butuh karakter tetap (fokus konsep/diagram/visualisasi), isi "-".
+KARAKTER UTAMA (WAJIB SPESIFIK):
+- Deskripsikan SATU karakter utama dengan detail LENGKAP: nama panggilan (bisa "-"), gender (WAJIB pria ATAU wanita, JANGAN "pria/wanita"), usia spesifik (angka), ciri fisik (rambut, pakaian), ekspresi khas.
+- Contoh BENAR: "Dika, pria 28 tahun, rambut hitam pendek, kemeja biru muda, celana abu-abu, ekspresi lelah tapi ramah"
+- Contoh SALAH: "Karakter utama", "Pria/wanita kasual", "Orang dewasa"
+- Karakter ini akan muncul di SEMUA scene yang butuh tokoh — WAJIB deskripsi konsisten (jangan ubah gender/usia/pakaian).
+- Kalau topik murni konsep/diagram tanpa tokoh berulang, isi "-".
 
 Balas HANYA JSON object.`;
     return await callAPI(sys, usr, 'outline');
