@@ -357,6 +357,10 @@
         mode: opts.mode,
         sumber: opts.sumber,
         angle: opts.angle,
+        targetAI: opts.targetAI,
+        modePrompt: opts.modePrompt,
+        tone: opts.tone,
+        targetChannel: opts.targetChannel,
         scenes: scenes,
         seo: seo
       };
@@ -725,6 +729,7 @@
         ${buildPromptAccordion(scene)}
         <div class="scene-actions">
           <button class="btn btn-secondary btn-small" data-act="copy">📋 Copy Narasi</button>
+          <button class="btn btn-secondary btn-small" data-act="rewrite">✨ Rewrite Scene</button>
           <button class="btn btn-secondary btn-small" data-act="regen-img">🔄 Ganti Gambar</button>
           <button class="btn btn-secondary btn-small" data-act="download-img">⬇️ Download Gambar</button>
         </div>
@@ -736,6 +741,7 @@
       if (actBtn) {
         const act = actBtn.dataset.act;
         if (act === 'copy') copyNarasi(scene);
+        if (act === 'rewrite') rewriteScene(idx);
         if (act === 'regen-img') regenImage(idx);
         if (act === 'download-img') downloadImage(scene, idx);
         return;
@@ -759,6 +765,71 @@
       );
     } else {
       showToast('Clipboard tidak didukung', 'error');
+    }
+  }
+
+  async function rewriteScene(idx) {
+    if (!state.currentProject) return;
+    if (state.isRewriting && state.isRewriting[idx]) {
+      showToast('⏳ Sedang rewrite scene ini...', '');
+      return;
+    }
+    state.isRewriting = state.isRewriting || {};
+    state.isRewriting[idx] = true;
+    showToast('✨ Rewrite scene ' + (idx + 1) + '...', '');
+
+    try {
+      const p = state.currentProject;
+      const opts = {
+        judul: p.judul,
+        format: p.format,
+        genre: p.genre,
+        style: p.style,
+        konteks: p.konteks,
+        mode: p.mode,
+        tone: p.tone || 'relatable',
+        targetAI: p.targetAI || 'universal',
+        modePrompt: p.modePrompt || 'per_scene',
+        targetChannel: p.targetChannel || 'universal'
+      };
+      const newScene = await window.DeepSeek.regenerateScene(opts, idx, p.scenes);
+      if (!newScene) throw new Error('DeepSeek tidak mengembalikan scene valid');
+
+      // Preserve: scene number, start, end, ai_image_url (regen img nanti)
+      const oldScene = p.scenes[idx];
+      newScene.scene = oldScene.scene;
+      newScene.start = oldScene.start;
+      newScene.end = oldScene.end;
+      newScene.ai_image_url = '';
+      newScene.video_urls = oldScene.video_urls || [];
+
+      p.scenes[idx] = newScene;
+
+      // Generate AI image baru untuk scene ini
+      try {
+        newScene.ai_image_url = Media.buildPollinationsUrl(
+          newScene.prompt_image || newScene.keyword_gambar || newScene.visual || newScene.narasi,
+          p.style,
+          p.format
+        );
+      } catch (e) { console.warn('Gen AI image gagal:', e.message); }
+
+      // Fetch stock media (Pexels/Pixabay) untuk scene ini
+      try {
+        const stockMedia = await Media.fetchSceneMedia(newScene, p.format);
+        if (stockMedia) {
+          newScene.video_urls = stockMedia.video_urls || newScene.video_urls || [];
+          newScene.photo_urls = stockMedia.photo_urls || newScene.photo_urls || [];
+        }
+      } catch (e) { console.warn('Fetch stock media gagal:', e.message); }
+
+      renderStoryboard(p);
+      showToast('✅ Scene ' + (idx + 1) + ' berhasil di-rewrite', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ ' + err.message, 'error');
+    } finally {
+      state.isRewriting[idx] = false;
     }
   }
 

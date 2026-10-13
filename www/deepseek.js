@@ -557,6 +557,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       return clips;
     }
     if (resultKey === 'outline') return parsed;
+    if (resultKey === 'raw') return parsed;
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
     // Return object dengan seo (opsional)
@@ -716,6 +717,37 @@ Balas HANYA JSON object.`;
     return await callAPI(sys, usr, 'outline');
   }
 
+  // ============ REGENERATE SINGLE SCENE ============
+  async function regenerateScene(opts, sceneIdx, contextScenes) {
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel);
+    const prev = contextScenes[sceneIdx - 1];
+    const cur = contextScenes[sceneIdx];
+    const next = contextScenes[sceneIdx + 1];
+    const userPrompt = `Judul: ${opts.judul}
+Format: ${opts.format}
+Genre: ${opts.genre}
+Style: ${opts.style}
+Target AI: ${opts.targetAI || 'universal'}
+Mode Prompt: ${opts.modePrompt || 'per_scene'}
+
+KONTEKS URUTAN CERITA:
+- Scene sebelum (${sceneIdx}): ${prev ? prev.narasi : '(ini scene pertama)'}
+- Scene saat ini (${sceneIdx + 1}, MAU DI-REGENERATE): ${cur ? cur.narasi : '(kosong)'}
+- Scene setelah (${sceneIdx + 2}): ${next ? next.narasi : '(ini scene terakhir)'}
+
+TUGAS: Tulis ULANG scene ke-${sceneIdx + 1} dengan ANGLE/VISUAL/META-FORA berbeda, tapi tetap konsisten dengan alur cerita sebelum dan sesudahnya. Jangan ubah topik utama.
+
+Balas dengan JSON object berisi SATU scene saja (bukan array):
+{
+  "scene": { "babak": "...", "narasi": "...", "narasi_tts": "...", ...semua field lainnya lengkap... }
+}`;
+    const parsed = await callAPI(systemPrompt, userPrompt, 'raw');
+    if (!parsed) return null;
+    const sceneData = parsed.scene || (parsed.scenes && parsed.scenes[0]) || parsed;
+    if (!sceneData || !sceneData.narasi) return null;
+    return normalizeScene(sceneData, sceneIdx);
+  }
+
   // ============ GENERATE STORYBOARD ============
   async function generateStoryboard(opts, onProgress) {
     const isAuto = opts.durasi === 'auto';
@@ -846,6 +878,7 @@ Balas HANYA JSON object.`;
   return {
     generateStoryboard,
     generateClips,
+    regenerateScene,
     estimateScenes,
     buildUserPrompt,
     buildSystemPrompt,
