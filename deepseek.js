@@ -102,6 +102,7 @@ LAYER 3 — PRODUCTION:
   3. Nama asing/spesifik yang sulit: tulis fonetik Indonesia sederhana
   4. Tanda baca sederhana: koma untuk pause pendek, titik untuk pause panjang, tanda tanya untuk intonasi tanya
   5. HINDARI: tanda kutip, tanda seru berlebihan, elipsis (…), simbol aneh
+  6. EMPHASIS: Kata yang ingin ditekankan tulis HURUF KAPITAL (contoh: "Ilmuwan beneran HAPUS memori orang"). TTS CapCut akan baca dengan intonasi lebih kuat.
   6. Panjang sama dengan narasi, TAPI lebih ramah dibaca mesin
   7. Kalau narasi sudah TTS-friendly, isi sama persis dengan narasi
   Contoh BENAR: narasi "Pada 2014, tim MIT berhasil..." → narasi_tts "Pada dua ribu empat belas, tim em-i-ti berhasil..."
@@ -115,6 +116,14 @@ LAYER 3 — PRODUCTION:
 LAYER 4 — QUALITY CONTROL:
 - fakta_kunci: angka/tanggal/nama yang HARUS benar untuk verifikasi user, atau "-"
 - sumber_hint: "Al-Quran"/"Hadis sahih"/"buku sejarah"/"jurnal"/"arsip", atau "-"`;
+
+  // ============ CHANNEL CTA ============
+  const CHANNEL_CTA = {
+    universal: 'CTA generik: like, subscribe, komen. Ringkas, tidak over-branding.',
+    visualogi: 'CTA KHAS VISUALOGI: (1) Akhiri dengan DEBATE: pertanyaan kontroversial/opini yang memicu komen, contoh "Menurutmu, hapus memori itu boleh? Komen di bawah!". (2) FOMO halus: "Video lengkapnya di channel, cek sekarang" kalau ada video panjang. HINDARI "follow Visualogi" yang generic. Tone: cerdas, sedikit provokatif, tidak kekanak-kanakan.',
+    kokbisa: 'CTA KHAS KOK BISA: edukatif + ngajak mikir. Contoh "Menurutmu gimana? Tulis di komen!". Follow CTA halus: "Subscribe biar kamu makin pintar tiap minggu". Tone: ramah guru, tidak menggurui.',
+    kurzgesagt: 'CTA KHAS KURZGESAGT: visual + subscribe. Contoh "Kalau kamu suka animasi kayak gini, subscribe untuk video baru tiap bulan". Tone: santai tapi serius, sedikit filosofis.'
+  };
 
   // ============ TONE NARASI ============
   const TONE_NARASI = {
@@ -306,7 +315,7 @@ FORMAT JSON:
     return prompt;
   };
 
-  function buildSystemPrompt(genre, judul, mode, tone, format) {
+  function buildSystemPrompt(genre, judul, mode, tone, format, targetChannel) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
 TUGAS:
@@ -326,6 +335,8 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 
     const toneDesc = TONE_NARASI[tone] || TONE_NARASI['relatable'];
     prompt += '\n\n=== TONE NARASI ===\n' + toneDesc + '\n';
+    const ctaDesc = CHANNEL_CTA[targetChannel] || CHANNEL_CTA['universal'];
+    prompt += '\n\n=== CTA CHANNEL ===\n' + ctaDesc + '\n';
 
     if (mode === 'commentary') {
       if (format === 'Shorts') { prompt += '\n' + STRUKTUR_COMMENTARY_SHORTS; }
@@ -743,7 +754,7 @@ Balas HANYA JSON object.`;
       }
     }
 
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel);
     const allScenes = [];
     const totalBatches = batches.length;
     let capturedSeo = null;
