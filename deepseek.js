@@ -211,8 +211,8 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
     "seo_meta_description": "meta description 155 char untuk SEO",
     "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
     "chapters": "timestamp chapter untuk deskripsi (khusus Long, format: 00:00 Intro\n00:45 Babak 1\n...)",
-    "thumbnail_prompt": "prompt thumbnail YouTube 1280x720 (English), cinematic, high contrast, focal point jelas, ruang untuk text overlay",
-    "thumbnail_text_suggestion": "3-5 kata text overlay untuk thumbnail (Bahasa Indonesia)",
+    "thumbnail_prompt": "english prompt + text overlay Indonesia di dalam prompt + --ar sesuai format (16:9 Long / 9:16 Shorts)",
+    "thumbnail_text_suggestion": "3-5 KATA KAPITAL, hook click-able, SAMA dengan text di thumbnail_prompt",
     "pinned_comment": "komentar pertama dari creator (pemicu diskusi atau pertanyaan)"
   }
 }
@@ -264,8 +264,14 @@ TENTANG SEO OUTPUT (di luar array scenes):
 - seo_meta_description: max 155 char (fokus ke klik, ada CTA halus)
 - hashtags: 5 hashtag paling relevan (Bahasa Indonesia + English mix)
 - chapters: HANYA untuk Long format. Format "MM:SS Judul\n" per baris. Untuk Shorts isi "-"
-- thumbnail_prompt: WAJIB English, deskriptif cinematic, 1280x720, high contrast, fokus 1 subjek, ada ruang untuk text
-- thumbnail_text_suggestion: 3-5 kata Indonesia, punchy, bukan clickbait murahan
+- thumbnail_prompt: WAJIB ENGLISH prompt yang SUDAH TERMASUK text overlay BAHASA INDONESIA tertulis di dalamnya (dalam tanda kutip). Struktur WAJIB: [style base] + [1 subjek utama dengan ekspresi/aksi kuat yang bikin click] + [detail visual pendukung] + [cinematic composition, high contrast, focal point jelas, eye-catching] + with bold text "TEXT INDONESIA" in large [color] letters + [aspect ratio params].
+  ASPECT RATIO WAJIB (sesuai format):
+    * Format Long: " --ar 16:9 --style raw --v 6" (thumbnail 1280x720)
+    * Format Shorts: " --ar 9:16 --style raw --v 6" (thumbnail 1080x1920, vertical)
+  CONTOH BENAR (Long): "...with bold text "OTAK HANCUR" in large yellow letters --ar 16:9 --style raw --v 6"
+  CONTOH BENAR (Shorts): "...with bold text "KOPI SANDERA OTAK" in large red letters --ar 9:16 --style raw --v 6"
+  CONTOH SALAH: "space for text overlay" (tanpa teks aktual), tanpa --ar di akhir
+- thumbnail_text_suggestion: 3-5 kata Bahasa Indonesia, HURUF KAPITAL SEMUA, HOOK yang curiosity-driven & click-able (contoh: "OTAK HANCUR", "KOPI SANDERA OTAK", "JANGAN SAMBUNG NYAWA"). Hindari clickbait murahan seperti "MENGEJUTKAN!!!" atau "TONTON SAMPAI HABIS". Ini teks yang SAMA dengan yang tertulis di thumbnail_prompt.
 - pinned_comment: 1-2 kalimat pemicu diskusi atau pertanyaan terbuka
 
 Adaptasi tone sesuai genre:
@@ -444,7 +450,7 @@ JANGAN ulangi narasi scene sebelumnya. Lanjutkan alur cerita.`;
       }
       if (batchInfo.current === batchInfo.total) {
         prompt += `
-SEO: Ini batch TERAKHIR. WAJIB isi key "seo" LENGKAP (youtube_title, youtube_description, youtube_tags, seo_meta_title, seo_meta_description, hashtags, chapters, thumbnail_prompt, thumbnail_text_suggestion, pinned_comment).`;
+SEO: Ini batch TERAKHIR. WAJIB isi key "seo" LENGKAP (youtube_title, youtube_description, youtube_tags, seo_meta_title, seo_meta_description, hashtags, chapters, thumbnail_prompt [WAJIB ada text Indonesia + --ar sesuai format], thumbnail_text_suggestion [3-5 KATA KAPITAL], pinned_comment).`;
       } else {
         prompt += `
 SEO: Ini BUKAN batch terakhir. Untuk key "seo" cukup isi {} (kosong).`;
