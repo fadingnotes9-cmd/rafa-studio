@@ -1886,3 +1886,63 @@ html, body {
 .seo-hook-option .seo-copy {
   flex-shrink: 0;
 }
+
+/* ============ MODAL: FETCH MEDIA INFO ============ */
+.modal-info-box {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal-info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.modal-info-row span:first-child {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+}
+.modal-info-row strong {
+  color: #f59e0b;
+  font-weight: 600;
+}
+.modal-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 8px 0 14px;
+  line-height: 1.5;
+}
+
+/* ============ TOMBOL FETCH MEDIA DI STORYBOARD ============ */
+.btn-fetch-media {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  transition: transform 0.15s;
+}
+.btn-fetch-media:hover { transform: translateY(-1px); }
+.btn-fetch-media:disabled { opacity: 0.6; cursor: wait; }
+.btn-fetch-media.pulse {
+  animation: fetchPulse 1.5s ease-in-out infinite;
+}
+@keyframes fetchPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
+  50% { box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
+}

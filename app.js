@@ -309,37 +309,18 @@
       setStep(2, 'done');
       setProgress(55, `${scenes.length} scene selesai dibuat`);
 
-      // STEP 2: Media (Pexels + Pixabay)
-      setStep(3, 'active');
-      setProgress(58, 'Mencari video & foto dari Pexels + Pixabay...');
+      // STEP 2 & 3: Tanya user dulu — fetch media sekarang atau nanti?
+      const userChoice = await showFetchMediaModal(scenes.length);
 
-      const mediaResults = await Media.fetchAllMedia(scenes, opts.format, (info) => {
-        const pct = 58 + (info.done / info.total) * 25;
-        setProgress(pct, `Mencari media... ${info.done}/${info.total}`);
-      });
-
-      if (state.abortGenerate) throw new Error('Dibatalkan oleh user');
-
-      // Sisipkan media ke scenes
-      scenes.forEach((s, i) => {
-        const m = mediaResults[i] || { videos: [], photos: [], primary: null };
-        s.video_urls = [...m.videos, ...m.photos];
-        s.media_primary = m.primary;
-      });
-      setStep(3, 'done');
-
-      // STEP 3: Pollinations AI Images
-      setStep(4, 'active');
-      setProgress(85, 'Menggenerate gambar AI...');
-
-      scenes.forEach((s) => {
-        s.ai_image_url = Media.buildPollinationsUrl(
-          s.keyword_gambar || s.visual || s.narasi,
-          opts.style,
-          opts.format
-        );
-      });
-      setStep(4, 'done');
+      if (userChoice === 'yes') {
+        await fetchAndAttachMedia(scenes, opts);
+        state.needsFetchMedia = false;
+      } else {
+        // Skip media — user mau review draft dulu
+        setStep(3, 'done');
+        setStep(4, 'done');
+        state.needsFetchMedia = true;
+      }
 
       // STEP 4: Done
       setStep(5, 'done');
@@ -383,6 +364,95 @@
     }
   });
 
+  // ============ HANDLER TOMBOL FETCH MEDIA DI STORYBOARD ============
+  async function handleFetchMediaClick(btn) {
+    if (!state.currentProject) return;
+    if (state.isFetchingMedia) return;
+    state.isFetchingMedia = true;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Fetch media...';
+
+    try {
+      const p = state.currentProject;
+      const opts = {
+        style: p.style,
+        format: p.format
+      };
+      await fetchAndAttachMedia(p.scenes, opts);
+      state.needsFetchMedia = false;
+      renderStoryboard(p);
+      showToast('✅ Media berhasil di-fetch', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('❌ ' + err.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '🎨 Coba Fetch Lagi';
+    } finally {
+      state.isFetchingMedia = false;
+    }
+  }
+
+  // ============ MODAL KONFIRMASI FETCH MEDIA ============
+  function showFetchMediaModal(sceneCount) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal-fetch-media');
+      const info = document.getElementById('fetch-media-info');
+      const btnYes = document.getElementById('modal-fetch-yes');
+      const btnLater = document.getElementById('modal-fetch-later');
+
+      if (!modal || !btnYes || !btnLater) {
+        // Fallback kalau elemen tidak ada — langsung fetch
+        resolve('yes');
+        return;
+      }
+
+      info.textContent = sceneCount + ' scene + SEO sudah jadi. Lanjut fetch media?';
+      modal.classList.add('show');
+
+      function cleanup() {
+        modal.classList.remove('show');
+        btnYes.removeEventListener('click', onYes);
+        btnLater.removeEventListener('click', onLater);
+      }
+      function onYes() { cleanup(); resolve('yes'); }
+      function onLater() { cleanup(); resolve('later'); }
+
+      btnYes.addEventListener('click', onYes);
+      btnLater.addEventListener('click', onLater);
+    });
+  }
+
+  // ============ FETCH MEDIA (dipanggil dari modal atau tombol) ============
+  async function fetchAndAttachMedia(scenes, opts) {
+    // STEP Media (Pexels + Pixabay)
+    setStep(3, 'active');
+    setProgress(58, 'Mencari video & foto dari Pexels + Pixabay...');
+    const mediaResults = await Media.fetchAllMedia(scenes, opts.format, (info) => {
+      const pct = 58 + (info.done / info.total) * 25;
+      setProgress(pct, `Mencari media... ${info.done}/${info.total}`);
+    });
+    if (state.abortGenerate) throw new Error('Dibatalkan oleh user');
+
+    scenes.forEach((s, i) => {
+      const m = mediaResults[i] || { videos: [], photos: [], primary: null };
+      s.video_urls = [...m.videos, ...m.photos];
+      s.media_primary = m.primary;
+    });
+    setStep(3, 'done');
+
+    // STEP Gambar AI (Pollinations)
+    setStep(4, 'active');
+    setProgress(85, 'Menggenerate gambar AI...');
+    scenes.forEach((s) => {
+      s.ai_image_url = Media.buildPollinationsUrl(
+        s.keyword_gambar || s.visual || s.narasi,
+        opts.style,
+        opts.format
+      );
+    });
+    setStep(4, 'done');
+  }
+
   // ============ CANCEL ============
   els.btnCancel.addEventListener('click', () => {
     state.abortGenerate = true;
@@ -415,6 +485,16 @@
     els.sbMeta.textContent = `${project.format} · ${durasiLabel} · ${project.genre} · ${project.style} · ${sceneCount} scene${vidIcon}${seoIcon}`;
 
     els.sceneList.innerHTML = '';
+
+    // Tombol Fetch Media (auto-detect dari scene data)
+    const missingMedia = project.scenes.filter(sc => !sc.ai_image_url && (!sc.video_urls || !sc.video_urls.length)).length;
+    if (missingMedia > 0) {
+      const fetchBtn = document.createElement('button');
+      fetchBtn.className = 'btn-fetch-media pulse';
+      fetchBtn.innerHTML = '🎨 Fetch Media (' + missingMedia + '/' + project.scenes.length + ' scene belum ada media)';
+      fetchBtn.addEventListener('click', () => handleFetchMediaClick(fetchBtn));
+      els.sceneList.appendChild(fetchBtn);
+    }
 
     // Render SEO panel di atas (kalau ada)
     if (project.seo) {
