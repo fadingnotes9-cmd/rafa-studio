@@ -44,11 +44,32 @@ STRUKTUR WAJIB SHORTS (WAJIB DIPATUHI — beda dari Long):
 - INTI: setiap scene pattern_interrupt WAJIB true. Ganti angle tiap scene.
 - CLIMAX: 1-2 scene. Ini puncak emosi, HARUS twist/kejutan terbesar.
 - CTA: MAKSIMAL 1 SCENE. Pilih SALAH SATU: interaksi (komen) ATAU follow. JANGAN dua-duanya.
-- Narasi per scene: 10-13 kata. MAX 15 kata.
 - Tiap scene HARUS punya pattern_interrupt (kecuali scene 1).
-- Total narasi ≤ 145 kata untuk 58 detik (asumsi TTS CapCut ~2.5 kata/detik).
 - JANGAN pakai "tapi tunggu...", "sebelum itu...", "di video ini..." — buang basa-basi.
-- LOOP-FRIENDLY: Scene terakhir (sebelum CTA, atau CTA itu sendiri) WAJIB diakhiri dengan kalimat yang NYAMBUNG balik ke scene 1. Contoh: scene 1 tanya "Kamu pernah nggak lupa mimpi?", scene terakhir balik "Jadi, kapan terakhir kamu mimpi jelas?". Tujuan: penonton replay otomatis.
+- LOOP-FRIENDLY: Scene terakhir WAJIB diakhiri dengan kalimat yang NYAMBUNG balik ke scene 1.
+
+=== ATURAN NARASI SHORTS (SANGAT KETAT — WAJIB DIPATUHI) ===
+
+1. PANJANG NARASI PER SCENE: 12-15 KATA (bukan 6-8 kata!).
+   - Narasi 6-8 kata = STATEMENT POLOS = SALAH. Ini yang bikin Shorts terasa kosong.
+   - Narasi 12-15 kata = ada penjelasan singkat = BENAR.
+   - Rumus: max kata = durasi_ideal × 2.5.
+     * Durasi 4s → 10 kata (minimal)
+     * Durasi 5s → 12-13 kata
+     * Durasi 6s → 15 kata
+   - HITUNG kata sebelum finalisasi. Kalau kurang, TAMBAH penjelasan.
+
+2. STRUKTUR NARASI: WAJIB ikuti pola [FAKTA] + [KENAPA/GIMANA] + [DAMPAK/ANALOGI singkat].
+   - Contoh BENAR: "Kortisol banjiri tubuh. Pembuluh darah menyempit, tekanan naik. Jantung kerja ekstra keras." (13 kata)
+   - Contoh SALAH: "Pembuluh darah menyempit, tekanan darah naik tajam." (7 kata — statement polos, tidak berbobot)
+   - Contoh BENAR: "Otak kehilangan memori. Kabel saraf putus, file berhamburan. Susah fokus, pikiran kacau." (13 kata)
+   - Contoh SALAH: "Otak kehilangan memori, susah fokus, pikiran kacau." (7 kata — statement polos)
+
+3. SETIAP SCENE HARUS MENJAWAB PERTANYAAN "KENAPA" ATAU "GIMANA".
+   - Narasi tidak boleh cuma sebut gejala. Harus ada sebab/akibat singkat.
+   - Kalau narasi cuma "X terjadi" tanpa penjelasan, tambah 1 klausa penjelas.
+
+4. HINDARI KALIMAT TERPOTONG. Narasi harus mengalir natural kalau dibaca TTS.
 `;
 
   const STRUKTUR_LONG = `
