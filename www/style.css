@@ -1852,3 +1852,37 @@ html, body {
   word-break: break-word;
   line-height: 1.5;
 }
+
+/* ============ SEO HOOK OPTIONS (A/B Test Titles) ============ */
+.seo-hook-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 4px 0;
+  background: #1e293b;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+}
+.hook-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hook-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+.seo-hook-option .seo-copy {
+  flex-shrink: 0;
+}

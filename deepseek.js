@@ -48,6 +48,7 @@ STRUKTUR WAJIB SHORTS (WAJIB DIPATUHI — beda dari Long):
 - Tiap scene HARUS punya pattern_interrupt (kecuali scene 1).
 - Total narasi ≤ 145 kata untuk 58 detik (asumsi TTS CapCut ~2.5 kata/detik).
 - JANGAN pakai "tapi tunggu...", "sebelum itu...", "di video ini..." — buang basa-basi.
+- LOOP-FRIENDLY: Scene terakhir (sebelum CTA, atau CTA itu sendiri) WAJIB diakhiri dengan kalimat yang NYAMBUNG balik ke scene 1. Contoh: scene 1 tanya "Kamu pernah nggak lupa mimpi?", scene terakhir balik "Jadi, kapan terakhir kamu mimpi jelas?". Tujuan: penonton replay otomatis.
 `;
 
   const STRUKTUR_LONG = `
@@ -177,6 +178,11 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
     }
   ],
   "seo": {
+    "hook_options": [
+      "Opsi 1: judul alternatif max 70 char, gaya pertanyaan (contoh: Kenapa...?)",
+      "Opsi 2: judul alternatif gaya shock/fakta mengejutkan (contoh: Ternyata...)",
+      "Opsi 3: judul alternatif gaya FOMO/urgensi (contoh: Jangan Diabaikan!...)"
+    ],
     "youtube_title": "judul YouTube optimal (max 70 char, SEO-friendly, curiosity-driven)",
     "youtube_description": "deskripsi YouTube lengkap (200-500 kata, paragraf + bullet + hashtag)",
     "youtube_tags": "tag dipisah koma (max 500 char total, 15-20 tag relevan)",
@@ -195,6 +201,7 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
 ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, narasi_tts, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood, visual_metaphor
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
+- SEO hook_options: WAJIB berisi 3 VARIAN JUDUL ALTERNATIF dengan gaya berbeda: (1) Gaya pertanyaan (curiosity), (2) Gaya shock/fakta mengejutkan, (3) Gaya FOMO/urgensi. Semua max 70 char, Bahasa Indonesia, SEO-friendly. Ini untuk A/B testing di YouTube.
 - TEXT DI DALAM GAMBAR: WAJIB 100% Bahasa Indonesia. TERMASUK istilah teknis panjang (jangan tulis "Default Mode Network" tapi "JARINGAN MODE MELAMUN", jangan "Gut-Brain Axis" tapi "JALUR OTAK-USUS", jangan "Working Memory" tapi "MEMORI KERJA"). YANG BOLEH ENGLISH HANYA akronim universal: DNA, RAM, VR, EEG, AI, WHO. Text maksimal 4 kata, huruf kapital semua. WAJIB tulis di prompt_image dengan format: with bold text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh BENAR: "...with bold text "SINYAL OTAK" on the megaphone...", "...with caption "JARINGAN MODE MELAMUN" at the top...", "...with text "TANDA BAHAYA" in red...". Contoh SALAH: "Default Mode Network", "Cortisol", "Working Memory", "Central Fatigue". Setiap scene WAJIB punya minimal 1 text Indonesia di prompt_image-nya.
 
 TENTANG PROMPT GAMBAR:

@@ -450,6 +450,20 @@
             <div class="seo-value">${escapeHtml(seo.youtube_title || '-')}</div>
           </div>
 
+          ${Array.isArray(seo.hook_options) && seo.hook_options.length ? `
+          <div class="seo-item">
+            <div class="seo-item-header">
+              <span class="seo-label">🎣 3 Judul Alternatif (A/B Test)</span>
+            </div>
+            ${seo.hook_options.map((h, i) => `
+              <div class="seo-hook-option">
+                <span class="hook-num">${i + 1}</span>
+                <span class="hook-text">${escapeHtml(h)}</span>
+                <button class="seo-copy" data-copy="${escapeHtml(h)}">📋</button>
+              </div>
+            `).join('')}
+          </div>` : ''}
+
           <div class="seo-item">
             <div class="seo-item-header">
               <span class="seo-label">📝 Description</span>
