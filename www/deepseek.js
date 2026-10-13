@@ -327,7 +327,7 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
 
   // ============ BUILD USER PROMPT ============
   function buildUserPrompt(opts) {
-    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo, mode, sumber, sumberData, angle, targetAI, modePrompt } = opts;
+    const { judul, format, durasi, genre, style, konteks, batchInfo, includeVideo, mode, sumber, sumberData, angle, targetAI, modePrompt, outlineData } = opts;
     const styleDesc = STYLE_PROMPT[style] || STYLE_PROMPT['Realistis'];
     const isAuto = durasi === 'auto';
 
@@ -373,6 +373,19 @@ INI BAGIAN ${batchInfo.current} DARI ${batchInfo.total}.
 Lanjutkan dari scene ke-${batchInfo.startScene} sampai scene ke-${batchInfo.endScene}.
 Mulai "scene": ${batchInfo.startScene}, akhiri "scene": ${batchInfo.endScene}.
 JANGAN ulangi narasi scene sebelumnya. Lanjutkan alur cerita.`;
+
+      if (outlineData && outlineData.outline) {
+        const myScenes = outlineData.outline.filter(o => o.scene >= batchInfo.startScene && o.scene <= batchInfo.endScene);
+        if (myScenes.length) {
+          prompt += "\n\nOUTLINE SCENE " + batchInfo.startScene + "-" + batchInfo.endScene + " (WAJIB IKUTI):";
+          myScenes.forEach(o => { prompt += "\n  Scene " + o.scene + " [" + o.babak + "]: " + o.poin; });
+          prompt += "\n\nATURAN KETAT:\n- ISI DETAIL sesuai outline di atas, JANGAN improvisasi poin baru\n- JANGAN ulangi topik yang sudah dibahas di scene sebelumnya\n- JANGAN bikin babak climax/cta di batch ini KECUALI outline scene tersebut memang climax/cta";
+          if (outlineData.karakter_utama && outlineData.karakter_utama !== '-') {
+            prompt += "\n\nKARAKTER UTAMA (WAJIB konsisten, deskripsi sama persis): " + outlineData.karakter_utama;
+            prompt += "\nTulis karakter ini di field tokoh dan prompt_image HANYA di scene yang memerlukan karakter. Scene diagram/konsep: tidak perlu.";
+          }
+        }
+      }
       if (batchInfo.current === batchInfo.total) {
         prompt += `
 SEO: Ini batch TERAKHIR. WAJIB isi key "seo" LENGKAP (youtube_title, youtube_description, youtube_tags, seo_meta_title, seo_meta_description, hashtags, chapters, thumbnail_prompt, thumbnail_text_suggestion, pinned_comment).`;
@@ -514,6 +527,7 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
       if (!clips.length) throw new Error('DeepSeek tidak mengembalikan clip valid. Coba lagi.');
       return clips;
     }
+    if (resultKey === 'outline') return parsed;
     const scenes = normalizeScenes(parsed);
     if (!scenes.length) throw new Error('DeepSeek tidak mengembalikan scene valid. Coba lagi.');
     // Return object dengan seo (opsional)
@@ -625,6 +639,34 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     return allClips;
   }
 
+
+  // ============ GENERATE OUTLINE (untuk Long Auto multi-batch) ============
+  async function generateOutline(opts, totalScenes) {
+    const sys = 'Kamu adalah perencana storyboard video YouTube. Tugasmu HANYA membuat outline struktur + deskripsi karakter utama. Balas dengan JSON object saja, tanpa markdown.';
+    const usr = `Judul: ${opts.judul}
+Format: Long
+Genre: ${opts.genre}
+Durasi: Auto (~${totalScenes} scene)
+
+Buat outline ${totalScenes} scene. Format JSON:
+{
+  "karakter_utama": "deskripsi detail karakter utama KALAU cerita butuh karakter berulang (contoh: 'Rafa, pria 25 tahun, rambut hitam pendek rapi, kemeja biru lengan panjang, ekspresi ramah'). Kalau tidak butuh karakter tetap, isi '-'",
+  "outline": [
+    { "scene": 1, "babak": "hook", "poin": "1 frasa utama maks 12 kata" }
+  ]
+}
+
+ATURAN STRUKTUR BABAK:
+- 10% awal: hook + intro
+- 60% tengah: body (subtopik WAJIB BERBEDA satu sama lain, JANGAN ada topik yang diulang)
+- 15% berikutnya: climax
+- 10% berikutnya: refleksi
+- 5% akhir: cta
+
+Setiap subtopik di body WAJIB unik. Balas HANYA JSON object.`;
+    return await callAPI(sys, usr, 'outline');
+  }
+
   // ============ GENERATE STORYBOARD ============
   async function generateStoryboard(opts, onProgress) {
     const isAuto = opts.durasi === 'auto';
@@ -668,6 +710,18 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
     const totalBatches = batches.length;
     let capturedSeo = null;
 
+    // Untuk Long Auto multi-batch: bikin outline global dulu
+    let outlineData = null;
+    if (isLong && isAuto && totalBatches > 1) {
+      try {
+        if (onProgress) onProgress({ outline: true, batch: 1, totalBatches });
+        outlineData = await generateOutline(opts, 60);
+        console.log('Outline OK:', outlineData && outlineData.outline ? outlineData.outline.length + ' scene' : 'kosong');
+      } catch (e) {
+        console.warn('Outline gagal, lanjut tanpa outline:', e.message);
+      }
+    }
+
     for (let b = 0; b < totalBatches; b++) {
       const batch = batches[b];
       if (onProgress) {
@@ -700,7 +754,8 @@ Ingat: output HANYA JSON object dengan key "scenes" berisi array. Tanpa markdown
         sumberData: opts.sumberData,
         angle: opts.angle,
         targetAI: opts.targetAI,
-        modePrompt: opts.modePrompt
+        modePrompt: opts.modePrompt,
+        outlineData: outlineData
       });
 
       let result;
