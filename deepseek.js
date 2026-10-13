@@ -170,7 +170,7 @@ FORMAT OUTPUT (WAJIB JSON object, TANPA markdown, TANPA teks di luar JSON):
 ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood, visual_metaphor
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
-- TEXT DI DALAM GAMBAR: Bahasa Indonesia untuk kalimat umum (contoh: label "STRES", tulisan "OTAK DALAM BAHAYA"). Bahasa Inggris hanya untuk istilah teknis universal (contoh: "Gut-Brain Axis", "Cortisol", "DNA"). Hindari text panjang di dalam gambar.
+- TEXT DI DALAM GAMBAR: SEMUA text di dalam gambar WAJIB Bahasa Indonesia, TERMASUK istilah teknis (jangan tulis "Gut-Brain Axis" tapi "Jalur Otak-Usus", jangan "Cortisol" tapi "Kortisol", jangan "DNA" tapi "DNA" boleh karena sudah umum). Singkatan asing yang sudah jadi istilah Indonesia populer boleh tetap (DNA, RAM, VR, EEG). Text maksimal 4 kata. Contoh yang BENAR: label "STRES", tulisan "OTAK DALAM BAHAYA", label "JALUR OTAK-USUS", label "KORTISOL". Contoh yang SALAH: "Gut-Brain Axis", "Cortisol Level", "Working Memory". WAJIB tulis di prompt_image dengan format: with text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh: "...with bold text "STRES" on the button...", "...with caption "OTAK DALAM BAHAYA" at the top...".
 
 TENTANG PROMPT GAMBAR:
 
@@ -656,14 +656,30 @@ Buat outline ${totalScenes} scene. Format JSON:
   ]
 }
 
-ATURAN STRUKTUR BABAK:
-- 10% awal: hook + intro
-- 60% tengah: body (subtopik WAJIB BERBEDA satu sama lain, JANGAN ada topik yang diulang)
-- 15% berikutnya: climax
-- 10% berikutnya: refleksi
-- 5% akhir: cta
+ATURAN STRUKTUR BABAK (WAJIB DIPATUHI):
+- HOOK (5-8%): pertanyaan/momen relatable yang bikin penasaran
+- INTRO (8-12%): kenalkan topik, apa yang akan dibahas
+- BODY (55-60%): PECAH JADI 3 SUB-GELOMBANG dengan fokus berbeda:
+  * Sub-1 (20% dari body): Konsep dasar & definisi
+  * Sub-2 (40% dari body): Mekanisme mendalam (neurosains/sains)
+  * Sub-3 (40% dari body): Faktor yang memperburuk + kapan harus waspada
+- CLIMAX (12-15%): puncak emosional, insight terbesar
+- REFLEKSI (8-10%): TIPS PRAKTIS (cara mengatasi/memanfaatkan) + refleksi filosofis
+- CTA (3-5%): ajakan engagement
 
-Setiap subtopik di body WAJIB unik. Balas HANYA JSON object.`;
+ATURAN KETAT ANTI-DUPLIKASI:
+1. Setiap poin di outline HARUS UNIK. JANGAN pakai studi/eksperimen/istilah yang sama 2x di scene berbeda. Contoh: kalau scene 8 bahas "eksperimen Radvansky 2011", JANGAN bahas lagi di scene 15.
+2. TIPS PRAKTIS (cara mengatasi) HANYA boleh di REFLEKSI. DILARANG taruh tips di BODY atau CLIMAX.
+3. Kapan harus waspada / bahaya / penyakit HANYA di akhir Sub-3 BODY, JANGAN nyelip di tengah tips.
+4. JANGAN taruh solusi sebelum CLIMAX — penonton harus dibawa ke puncak dulu.
+5. Setiap scene body harus jawab SATU pertanyaan spesifik. Kalau jawabannya sama, artinya duplikat — pilih salah satu.
+6. Setiap topik yang muncul di body, pastikan TIDAK muncul lagi di sub-gelombang berikutnya.
+
+KARAKTER UTAMA:
+- Deskripsikan detail KALAU cerita butuh karakter berulang (contoh: "Rafa, pria 25 tahun, rambut hitam pendek rapi, kemeja biru lengan panjang, ekspresi ramah").
+- Kalau tidak butuh karakter tetap (fokus konsep/diagram/visualisasi), isi "-".
+
+Balas HANYA JSON object.`;
     return await callAPI(sys, usr, 'outline');
   }
 
