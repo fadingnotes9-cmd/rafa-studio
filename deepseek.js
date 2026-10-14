@@ -8,12 +8,13 @@ const DeepSeek = (() => {
   const MODEL = 'deepseek-chat';
 
   // ============ BLOB CHARACTER (MASKOT VISUALOGI) ============
-  const BLOB_CHARACTER = {
-    base: 'simple cute blob character, white rounded body (head and body merged into one soft oval shape) with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms (short rounded, no fingers), small stubby legs (short rounded, no feet), wearing a BLUE headband (horizontal blue band across upper part of head, thick, color #2563eb), clean minimal cartoon mascot style',
-    exprMap: 'ekspresi wajah blob HARUS mengikuti emosi scene: kaget (mata jadi 2 titik besar, mulut jadi O), sedih (mata jadi lengkung turun, mulut melengkung ke bawah), senang (mata melengkung senyum, senyum lebar), takut (mata kecil titik, mulut zigzag), bingung (1 mata lebih kecil, mulut garis miring), marah (mata tajam, mulut garis datar tebal), mikir (mata lihat ke atas, tangan menyentuh dagu)',
-    props: 'Blob boleh pegang/kenakan property yang relevan dengan topik scene (contoh: topik kopi → blob pegang mug kopi; topik olahraga → blob pegang bola; topik sains → blob pegang mikroskop). Property BOLEH berubah tiap scene, TAPI bentuk dasar blob (body putih bulat, 2 titik mata, senyum, IKAT KEPALA BIRU) WAJIB KONSISTEN 100% di semua scene. Ikat kepala biru TIDAK BOLEH HILANG atau berubah warna.',
-    otherChars: 'Kalau scene butuh karakter LAIN (manusia, ilmuwan, tokoh sejarah, dll), gambar sebagai karakter 2D flat biasa (simple cartoon human, flat 2D style, thick outline, tanpa detail rumit). JANGAN gambar karakter lain sebagai blob. HANYA maskot blob yang berbentuk blob.'
-  };
+  const STICKMAN_CHARACTER = {
+    base: 'simple stickman character, white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body (single thick black line), stick arms (thick black lines), stick legs (thick black lines), clean minimal cartoon style',
+    exprMap: 'ekspresi wajah stickman HARUS mengikuti emosi scene: kaget (mata jadi 2 titik besar, mulut jadi O), sedih (mata jadi lengkung turun, mulut melengkung ke bawah), senang (mata melengkung senyum, senyum lebar), takut (mata kecil titik, mulut zigzag), bingung (1 mata lebih kecil, mulut garis miring), marah (mata tajam, mulut garis datar tebal), mikir (mata lihat ke atas, tangan menyentuh dagu)',
+    outfitRule: 'OUTFIT/PAKAIAN STICKMAN WAJIB MENYESUAIKAN TOPIK VIDEO. Tentukan 1 outfit utama di awal (dari judul + konteks + genre), LALU PAKAI OUTFIT ITU SAMA PERSIS di SEMUA SCENE video ini. Outfit TIDAK BOLEH berubah antar scene dalam 1 video. Contoh: video "Perang Badar" pakai outfit "white Arabian robe with turban and small sword" di semua 60 scene. Video "Fisika Kuantum" pakai outfit "white lab coat with glasses" di semua scene. Kalau topik abstrak, AI tentukan outfit netral (kaos kasual atau lab coat sederhana) dan pakai konsisten.',
+    props: 'Selain outfit utama, stickman boleh pegang property yang relevan dengan aksi scene (contoh: topik kopi → pegang mug kopi; topik olahraga → pegang bola; topik sains → pegang mikroskop). Property BOLEH berubah tiap scene, TAPI outfit utama WAJIB SAMA di semua scene.',
+    otherChars: 'Kalau scene butuh karakter LAIN (manusia, ilmuwan, tokoh sejarah), gambar sebagai karakter 2D flat biasa (simple cartoon human, flat 2D style, thick outline, tanpa detail rumit). JANGAN gambar karakter lain dengan style stickman. HANYA stickman utama yang berbentuk stickman.'
+  }
 
   const STYLE_PROMPT = {
     'Realistis': 'cinematic photography, photorealistic, dramatic lighting, 8k, highly detailed, film grain',
@@ -415,20 +416,20 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
       else { prompt += '\n' + STRUKTUR_LONG; }
     }
     if (style === 'Stickman') {
-      prompt += '\n\n=== MASKOT BLOB — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
-      prompt += BLOB_CHARACTER.base + '\n\n';
-      prompt += 'ATURAN MASKOT BLOB (WAJIB DIPATUHI):\n';
-      prompt += '1. Blob WAJIB muncul di SETIAP scene yang menampilkan tokoh/karakter (scene naratif, aksi, ekspresi). Blob adalah maskot utama channel.\n';
-      prompt += '2. Scene yang PURE diagram/konsep/grafik BOLEH tanpa blob, tapi kalau bisa tetap masukkan blob kecil di pojok sebagai pengamat.\n';
-      prompt += '3. ' + BLOB_CHARACTER.exprMap + '\n\n';
-      prompt += '4. ' + BLOB_CHARACTER.props + '\n\n';
-      prompt += '5. ' + BLOB_CHARACTER.otherChars + '\n\n';
-      prompt += '6. field "tokoh" di scene: isi "Blob" kalau hanya blob yang muncul. Kalau ada karakter lain juga, isi "Blob, [nama karakter lain]" (contoh: "Blob, Bimo").\n';
-      prompt += '7. field "prompt_image" WAJIB DIAWALI dengan deskripsi blob yang PERSIS SAMA di setiap scene: "simple cute blob character, white rounded body with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms, small stubby legs, wearing a blue headband, " lalu lanjutkan dengan [ekspresi + property + aksi] + [background/karakter lain].\n';
-      prompt += '8. JANGAN pernah ganti warna body blob (WAJIB putih), JANGAN hapus ikat kepala biru, JANGAN ubah bentuk body (WAJIB bulat oval menyatu). HANYA ekspresi wajah + property/aksesoris topik + aksi yang berubah.\n';
-      prompt += '9. Skala blob di frame: medium shot standard, tinggi blob sekitar 1/3 frame supaya jelas terlihat.\n';
-      prompt += '10. Kalau scene butuh karakter lain (manusia/tokoh), gambar dengan style flat 2D cartoon biasa dengan outline tebal, TAPI JANGAN buat mereka berbentuk blob.\n';
-      prompt += '11. Ikat kepala biru WAJIB selalu ada di setiap scene — jangan pernah lupa atau ganti warnanya.\n';
+      prompt += '\n\n=== KARAKTER STICKMAN — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
+      prompt += STICKMAN_CHARACTER.base + '\n\n';
+      prompt += 'ATURAN KARAKTER STICKMAN (WAJIB DIPATUHI):\n';
+      prompt += '1. Stickman WAJIB muncul di SETIAP scene yang menampilkan tokoh/karakter. Stickman adalah maskot utama channel.\n';
+      prompt += '2. ' + STICKMAN_CHARACTER.outfitRule + '\n\n';
+      prompt += '3. ' + STICKMAN_CHARACTER.exprMap + '\n\n';
+      prompt += '4. ' + STICKMAN_CHARACTER.props + '\n\n';
+      prompt += '5. ' + STICKMAN_CHARACTER.otherChars + '\n\n';
+      prompt += '6. field "tokoh" di scene: isi nama stickman (default "Rafa") kalau hanya stickman yang muncul. Kalau ada karakter lain, isi "Rafa, [nama karakter lain]".\n';
+      prompt += '7. field "prompt_image" WAJIB DIAWALI dengan base stickman PERSIS SAMA di setiap scene: "simple stickman character, white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body, stick arms, stick legs, [OUTFIT_UTAMA_YANG_SAMA_DI_SEMUA_SCENE], " lalu lanjutkan dengan [ekspresi + property + aksi] + [background/karakter lain].\n';
+      prompt += '8. OUTFIT UTAMA WAJIB SAMA PERSIS di semua scene (jangan ganti baju/topi/aksesoris utama antar scene). HANYA ekspresi wajah + property tangan (benda yang dipegang) + aksi yang berubah.\n';
+      prompt += '9. Skala stickman di frame: medium shot standard, tinggi stickman sekitar 1/3-1/2 frame.\n';
+      prompt += '10. Kalau scene butuh karakter lain (manusia/tokoh), gambar dengan style flat 2D cartoon biasa dengan outline tebal.\n';
+      prompt += '11. JANGAN pernah hapus outfit utama stickman. JANGAN ubah proporsi kepala/badan. JANGAN ganti style ke bentuk lain.\n';
     }
     prompt += '\n' + LAYER_ELEMEN;
     prompt += '\n' + SCHEMA_JSON;
