@@ -23,7 +23,7 @@ const DeepSeek = (() => {
     'Anime': 'studio ghibli style, anime illustration, soft colors, detailed background, cel shaded',
     'Watercolor': 'watercolor painting, soft brush strokes, pastel colors, artistic, paper texture',
     'Flat 2D': 'flat 2D illustration, bold solid colors, cartoon style, minimal shading, clean vector art, high contrast, expressive character, simple shapes',
-    'Stickman': 'simple cute blob character, white rounded body with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms, small stubby legs, wearing a blue headband, clean minimal cartoon mascot style, bold clean lines, flat colors, white or pastel background'
+    'Stickman': 'simple stickman character, white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body, stick arms, stick legs, wearing outfit sesuai topik video (konsisten di semua scene), clean minimal cartoon style, bold clean lines, flat colors, white or pastel background'
   };
 
   const SAFEGUARD_ISLAM = `
