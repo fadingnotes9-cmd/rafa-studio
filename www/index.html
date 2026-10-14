@@ -68,6 +68,10 @@
             <input type="radio" name="mode" value="clipfinder">
             <span>✂️ Clip Finder</span>
           </label>
+          <label class="radio">
+            <input type="radio" name="mode" value="visualize">
+            <span>✨ Visualisasi Konten</span>
+          </label>
         </div>
         <small class="field-hint">Storyboard = cerita lengkap. Komentar = analisis/opini dari sumber (aman monetisasi).</small>
       </div>
@@ -218,6 +222,28 @@
       <!-- ========== END KOMENTAR MODE ========== -->
 
       <!-- ========== CLIP FINDER MODE (conditional) ========== -->
+      <!-- ========== VISUALIZE MODE (conditional) ========== -->
+      <div id="visualize-fields" style="display:none;">
+
+        <div class="field">
+          <label for="visualize-judul">Judul Konten <span class="req">*</span></label>
+          <input type="text" id="visualize-judul" placeholder="Contoh: Apa yang Dharma Pongrekun Katakan Tentang QRIS">
+          <small class="field-hint">Judul untuk konten visualisasi ini.</small>
+        </div>
+
+        <div class="field">
+          <label for="visualize-transkrip">Transkrip Sumber <span class="req">*</span></label>
+          <textarea id="visualize-transkrip" rows="10" placeholder="Paste transkrip lengkap di sini (dari YouTube, ceramah, podcast, dll). AI akan ekstrak poin-poin utama dan visualkan."></textarea>
+          <small class="field-hint">⚠️ AMAN: paste transkrip text. Limit ~15.000 kata.</small>
+        </div>
+
+        <div class="field">
+          <label for="visualize-konteks">Konteks Tambahan <small>(opsional)</small></label>
+          <textarea id="visualize-konteks" rows="2" placeholder="Contoh: fokus pada poin tentang ekonomi / tekankan aspek solusi"></textarea>
+        </div>
+
+      </div>
+
       <div id="clipfinder-fields" style="display:none;">
 
         <div class="field">

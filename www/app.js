@@ -124,6 +124,12 @@
       if (!tr) { showToast('Transkrip wajib diisi', 'error'); return; }
       if (tr.length < 500) { showToast('Transkrip terlalu pendek (min 500 karakter)', 'error'); return; }
       sumberData = { transkrip: tr.slice(0, 80000) };
+    } else if (modeVal === 'visualize') {
+      const vJudul = (document.getElementById('visualize-judul')?.value || '').trim();
+      const vTr = (document.getElementById('visualize-transkrip')?.value || '').trim();
+      if (!vJudul) { showToast('Judul konten wajib diisi', 'error'); return; }
+      if (!vTr) { showToast('Transkrip sumber wajib diisi', 'error'); return; }
+      if (vTr.length < 500) { showToast('Transkrip terlalu pendek (min 500 karakter)', 'error'); return; }
     } else {
       const judulWajib = modeVal === 'storyboard' || (modeVal === 'commentary' && sumberVal === 'topik');
       if (judulWajib && !judul) {
@@ -178,13 +184,25 @@
     const clipTarget = document.getElementById('clip-target')?.value || 'auto';
     const clipAngle = (document.getElementById('clip-angle')?.value || '').trim();
 
+    // Override untuk mode visualize
+    let finalJudul = judul;
+    let finalSumberData = sumberData;
+    let finalKonteks = els.konteks.value.trim();
+    if (mode === 'visualize') {
+      finalJudul = (document.getElementById('visualize-judul')?.value || '').trim();
+      const vTr = (document.getElementById('visualize-transkrip')?.value || '').trim();
+      finalSumberData = { transkrip: vTr.slice(0, 80000) };
+      const vKontek = (document.getElementById('visualize-konteks')?.value || '').trim();
+      if (vKontek) finalKonteks = vKontek;
+    }
+
     const opts = {
-      judul: judul,
+      judul: finalJudul,
       format: getRadioValue('format') || 'Long',
       durasi: durasiRaw === 'auto' ? 'auto' : parseInt(durasiRaw, 10),
       genre: els.genre.value,
       style: getRadioValue('style') || 'Realistis',
-      konteks: els.konteks.value.trim(),
+      konteks: finalKonteks,
       includeVideo: !!document.getElementById('include-video')?.checked,
       targetAI: targetAI,
       modePrompt: modePrompt,
@@ -192,7 +210,7 @@
       targetChannel: targetChannel,
       mode: mode,
       sumber: sumber,
-      sumberData: sumberData,
+      sumberData: finalSumberData,
       angle: angle,
       clipTarget: clipTarget,
       clipAngle: clipAngle
@@ -1336,6 +1354,7 @@ ${clip.transkrip_asli}
     const sumber = getRadioValue("sumber") || "topik";
     const commentaryEl = document.getElementById("commentary-fields");
     const clipEl = document.getElementById("clipfinder-fields");
+    const vizEl = document.getElementById("visualize-fields");
     const konteksEl = document.getElementById("field-konteks-storyboard");
     const judulField = document.getElementById("field-judul");
     const judulLabel = document.getElementById("label-judul");
@@ -1345,6 +1364,7 @@ ${clip.transkrip_asli}
     // Reset semua
     if (commentaryEl) commentaryEl.style.display = "none";
     if (clipEl) clipEl.style.display = "none";
+    if (vizEl) vizEl.style.display = "none";
     if (konteksEl) konteksEl.style.display = "block";
     if (judulField) judulField.style.display = "block";
     if (btnGenerate) btnGenerate.textContent = "🚀 Generate Storyboard";
@@ -1365,6 +1385,11 @@ ${clip.transkrip_asli}
       if (konteksEl) konteksEl.style.display = "none";
       if (judulField) judulField.style.display = "none";
       if (btnGenerate) btnGenerate.textContent = "✂️ Cari Clip Terbaik";
+    } else if (mode === "visualize") {
+      if (vizEl) vizEl.style.display = "block";
+      if (konteksEl) konteksEl.style.display = "none";
+      if (judulField) judulField.style.display = "none";
+      if (btnGenerate) btnGenerate.textContent = "✨ Visualkan Konten";
     } else {
       // storyboard
       if (judulLabel) judulLabel.innerHTML = 'Judul Video <span class="req">*</span>';
