@@ -7,11 +7,12 @@ const DeepSeek = (() => {
   const ENDPOINT = 'https://api.deepseek.com/chat/completions';
   const MODEL = 'deepseek-chat';
 
-  // ============ KARAKTER RAFA (STICKMAN) ============
-  const RAFI_CHARACTER = {
-    base: 'Rafa the stickman: white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body (single thick black line), stick arms (thick black lines), stick legs (thick black lines), no clothes on body (naked stickman), consistent character design',
-    exprMap: 'ekspresi wajah Rafa HARUS mengikuti emosi scene: kaget (mata O besar, mulut O), sedih (mata turun, mulut melengkung ke bawah), senang (mata melengkung, senyum lebar), takut (mata kecil, mulut zigzag), bingung (mata tanya, mulut garis), marah (mata tajam, mulut garis tebal)',
-    props: 'Rafa boleh pegang/kenakan property yang relevan dengan topik scene (contoh: topik kopi → Rafa pegang mug kopi; topik olahraga → Rafa pakai sepatu lari; topik sains → Rafa pakai kacamata ilmuwan). Property BOLEH berubah tiap scene, TAPI bentuk dasar tubuh Rafa (kepala bulat putih, stick body, mata titik, senyum) WAJIB KONSISTEN 100% di semua scene.'
+  // ============ BLOB CHARACTER (MASKOT VISUALOGI) ============
+  const BLOB_CHARACTER = {
+    base: 'simple cute blob character, white rounded body (head and body merged into one soft oval shape) with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms (short rounded, no fingers), small stubby legs (short rounded, no feet), wearing a BLUE headband (horizontal blue band across upper part of head, thick, color #2563eb), clean minimal cartoon mascot style',
+    exprMap: 'ekspresi wajah blob HARUS mengikuti emosi scene: kaget (mata jadi 2 titik besar, mulut jadi O), sedih (mata jadi lengkung turun, mulut melengkung ke bawah), senang (mata melengkung senyum, senyum lebar), takut (mata kecil titik, mulut zigzag), bingung (1 mata lebih kecil, mulut garis miring), marah (mata tajam, mulut garis datar tebal), mikir (mata lihat ke atas, tangan menyentuh dagu)',
+    props: 'Blob boleh pegang/kenakan property yang relevan dengan topik scene (contoh: topik kopi → blob pegang mug kopi; topik olahraga → blob pegang bola; topik sains → blob pegang mikroskop). Property BOLEH berubah tiap scene, TAPI bentuk dasar blob (body putih bulat, 2 titik mata, senyum, IKAT KEPALA BIRU) WAJIB KONSISTEN 100% di semua scene. Ikat kepala biru TIDAK BOLEH HILANG atau berubah warna.',
+    otherChars: 'Kalau scene butuh karakter LAIN (manusia, ilmuwan, tokoh sejarah, dll), gambar sebagai karakter 2D flat biasa (simple cartoon human, flat 2D style, thick outline, tanpa detail rumit). JANGAN gambar karakter lain sebagai blob. HANYA maskot blob yang berbentuk blob.'
   };
 
   const STYLE_PROMPT = {
@@ -21,7 +22,7 @@ const DeepSeek = (() => {
     'Anime': 'studio ghibli style, anime illustration, soft colors, detailed background, cel shaded',
     'Watercolor': 'watercolor painting, soft brush strokes, pastel colors, artistic, paper texture',
     'Flat 2D': 'flat 2D illustration, bold solid colors, cartoon style, minimal shading, clean vector art, high contrast, expressive character, simple shapes',
-    'Stickman': 'simple stickman doodle, white round head with thick black outline, stick body with thick black strokes, expressive face (2 dot eyes, simple line mouth), hand-drawn doodle style, minimal details, bold clean lines, white or pastel background, cartoon mascot style'
+    'Stickman': 'simple cute blob character, white rounded body with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms, small stubby legs, wearing a blue headband, clean minimal cartoon mascot style, bold clean lines, flat colors, white or pastel background'
   };
 
   const SAFEGUARD_ISLAM = `
@@ -414,17 +415,20 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
       else { prompt += '\n' + STRUKTUR_LONG; }
     }
     if (style === 'Stickman') {
-      prompt += '\n\n=== KARAKTER RAFA (STICKMAN) — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
-      prompt += RAFI_CHARACTER.base + '\n\n';
-      prompt += 'ATURAN KARAKTER RAFA:\n';
-      prompt += '1. Rafa WAJIB muncul di SETIAP scene yang menampilkan tokoh/karakter (scene naratif, aksi, ekspresi).\n';
-      prompt += '2. Scene yang PURE diagram/konsep/grafik (tanpa tokoh) BOLEH tanpa Rafa, tapi kalau bisa tetap masukkan Rafa kecil di pojok sebagai pengamat.\n';
-      prompt += '3. ' + RAFI_CHARACTER.exprMap + '\n\n';
-      prompt += '4. ' + RAFI_CHARACTER.props + '\n\n';
-      prompt += '5. field "tokoh" di scene WAJIB isi "Rafa" (bukan nama lain) untuk semua scene yang ada karakter.\n';
-      prompt += '6. field "prompt_image" WAJIB DIAWALI dengan deskripsi Rafa yang PERSIS SAMA di setiap scene: "simple stickman doodle, white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body, stick arms, stick legs, " lalu lanjutkan dengan [ekspresi + property + aksi] + [background].\n';
-      prompt += '7. JANGAN pernah ganti warna tubuh Rafa, jangan tambah pakaian yang menutupi stick body, jangan ubah bentuk kepala. HANYA ekspresi wajah + property/aksesoris + aksi yang berubah.\n';
-      prompt += '8. Skala Rafa di frame: medium shot standard, kepala setinggi 1/3 frame supaya wajahnya jelas terlihat.\n';
+      prompt += '\n\n=== MASKOT BLOB — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
+      prompt += BLOB_CHARACTER.base + '\n\n';
+      prompt += 'ATURAN MASKOT BLOB (WAJIB DIPATUHI):\n';
+      prompt += '1. Blob WAJIB muncul di SETIAP scene yang menampilkan tokoh/karakter (scene naratif, aksi, ekspresi). Blob adalah maskot utama channel.\n';
+      prompt += '2. Scene yang PURE diagram/konsep/grafik BOLEH tanpa blob, tapi kalau bisa tetap masukkan blob kecil di pojok sebagai pengamat.\n';
+      prompt += '3. ' + BLOB_CHARACTER.exprMap + '\n\n';
+      prompt += '4. ' + BLOB_CHARACTER.props + '\n\n';
+      prompt += '5. ' + BLOB_CHARACTER.otherChars + '\n\n';
+      prompt += '6. field "tokoh" di scene: isi "Blob" kalau hanya blob yang muncul. Kalau ada karakter lain juga, isi "Blob, [nama karakter lain]" (contoh: "Blob, Bimo").\n';
+      prompt += '7. field "prompt_image" WAJIB DIAWALI dengan deskripsi blob yang PERSIS SAMA di setiap scene: "simple cute blob character, white rounded body with thick black outline, 2 small black dot eyes, simple curved smile line, small stubby arms, small stubby legs, wearing a blue headband, " lalu lanjutkan dengan [ekspresi + property + aksi] + [background/karakter lain].\n';
+      prompt += '8. JANGAN pernah ganti warna body blob (WAJIB putih), JANGAN hapus ikat kepala biru, JANGAN ubah bentuk body (WAJIB bulat oval menyatu). HANYA ekspresi wajah + property/aksesoris topik + aksi yang berubah.\n';
+      prompt += '9. Skala blob di frame: medium shot standard, tinggi blob sekitar 1/3 frame supaya jelas terlihat.\n';
+      prompt += '10. Kalau scene butuh karakter lain (manusia/tokoh), gambar dengan style flat 2D cartoon biasa dengan outline tebal, TAPI JANGAN buat mereka berbentuk blob.\n';
+      prompt += '11. Ikat kepala biru WAJIB selalu ada di setiap scene — jangan pernah lupa atau ganti warnanya.\n';
     }
     prompt += '\n' + LAYER_ELEMEN;
     prompt += '\n' + SCHEMA_JSON;
