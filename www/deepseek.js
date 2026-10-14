@@ -7,13 +7,21 @@ const DeepSeek = (() => {
   const ENDPOINT = 'https://api.deepseek.com/chat/completions';
   const MODEL = 'deepseek-chat';
 
+  // ============ KARAKTER RAFA (STICKMAN) ============
+  const RAFI_CHARACTER = {
+    base: 'Rafa the stickman: white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body (single thick black line), stick arms (thick black lines), stick legs (thick black lines), no clothes on body (naked stickman), consistent character design',
+    exprMap: 'ekspresi wajah Rafa HARUS mengikuti emosi scene: kaget (mata O besar, mulut O), sedih (mata turun, mulut melengkung ke bawah), senang (mata melengkung, senyum lebar), takut (mata kecil, mulut zigzag), bingung (mata tanya, mulut garis), marah (mata tajam, mulut garis tebal)',
+    props: 'Rafa boleh pegang/kenakan property yang relevan dengan topik scene (contoh: topik kopi → Rafa pegang mug kopi; topik olahraga → Rafa pakai sepatu lari; topik sains → Rafa pakai kacamata ilmuwan). Property BOLEH berubah tiap scene, TAPI bentuk dasar tubuh Rafa (kepala bulat putih, stick body, mata titik, senyum) WAJIB KONSISTEN 100% di semua scene.'
+  };
+
   const STYLE_PROMPT = {
     'Realistis': 'cinematic photography, photorealistic, dramatic lighting, 8k, highly detailed, film grain',
     'Ilustrasi': 'digital illustration, vibrant colors, detailed line art, flat shading, concept art',
     'Sketsa': 'pencil sketch, hand-drawn, monochrome, detailed crosshatching, sketchbook style',
     'Anime': 'studio ghibli style, anime illustration, soft colors, detailed background, cel shaded',
     'Watercolor': 'watercolor painting, soft brush strokes, pastel colors, artistic, paper texture',
-    'Flat 2D': 'flat 2D illustration, bold solid colors, cartoon style, minimal shading, clean vector art, high contrast, expressive character, simple shapes'
+    'Flat 2D': 'flat 2D illustration, bold solid colors, cartoon style, minimal shading, clean vector art, high contrast, expressive character, simple shapes',
+    'Stickman': 'simple stickman doodle, white round head with thick black outline, stick body with thick black strokes, expressive face (2 dot eyes, simple line mouth), hand-drawn doodle style, minimal details, bold clean lines, white or pastel background, cartoon mascot style'
   };
 
   const SAFEGUARD_ISLAM = `
@@ -349,7 +357,7 @@ FORMAT JSON:
     return prompt;
   };
 
-  function buildSystemPrompt(genre, judul, mode, tone, format, targetChannel) {
+  function buildSystemPrompt(genre, judul, mode, tone, format, targetChannel, style) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
 TUGAS:
@@ -378,6 +386,19 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
     } else {
       if (format === 'Shorts') { prompt += '\n' + STRUKTUR_SHORTS; }
       else { prompt += '\n' + STRUKTUR_LONG; }
+    }
+    if (style === 'Stickman') {
+      prompt += '\n\n=== KARAKTER RAFA (STICKMAN) — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
+      prompt += RAFI_CHARACTER.base + '\n\n';
+      prompt += 'ATURAN KARAKTER RAFA:\n';
+      prompt += '1. Rafa WAJIB muncul di SETIAP scene yang menampilkan tokoh/karakter (scene naratif, aksi, ekspresi).\n';
+      prompt += '2. Scene yang PURE diagram/konsep/grafik (tanpa tokoh) BOLEH tanpa Rafa, tapi kalau bisa tetap masukkan Rafa kecil di pojok sebagai pengamat.\n';
+      prompt += '3. ' + RAFI_CHARACTER.exprMap + '\n\n';
+      prompt += '4. ' + RAFI_CHARACTER.props + '\n\n';
+      prompt += '5. field "tokoh" di scene WAJIB isi "Rafa" (bukan nama lain) untuk semua scene yang ada karakter.\n';
+      prompt += '6. field "prompt_image" WAJIB DIAWALI dengan deskripsi Rafa yang PERSIS SAMA di setiap scene: "simple stickman doodle, white round head with thick black outline, 2 small black dot eyes, simple curved smile line, stick body, stick arms, stick legs, " lalu lanjutkan dengan [ekspresi + property + aksi] + [background].\n';
+      prompt += '7. JANGAN pernah ganti warna tubuh Rafa, jangan tambah pakaian yang menutupi stick body, jangan ubah bentuk kepala. HANYA ekspresi wajah + property/aksesoris + aksi yang berubah.\n';
+      prompt += '8. Skala Rafa di frame: medium shot standard, kepala setinggi 1/3 frame supaya wajahnya jelas terlihat.\n';
     }
     prompt += '\n' + LAYER_ELEMEN;
     prompt += '\n' + SCHEMA_JSON;
@@ -753,7 +774,7 @@ Balas HANYA JSON object.`;
 
   // ============ REGENERATE SINGLE SCENE ============
   async function regenerateScene(opts, sceneIdx, contextScenes) {
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style);
     const prev = contextScenes[sceneIdx - 1];
     const cur = contextScenes[sceneIdx];
     const next = contextScenes[sceneIdx + 1];
@@ -820,7 +841,7 @@ Balas dengan JSON object berisi SATU scene saja (bukan array):
       }
     }
 
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style);
     const allScenes = [];
     const totalBatches = batches.length;
     let capturedSeo = null;
