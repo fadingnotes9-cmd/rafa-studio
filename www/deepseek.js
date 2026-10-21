@@ -185,6 +185,7 @@ LAYER 4 — QUALITY CONTROL:
     dokumenter: 'DOKUMENTER FORMAL — gaya Netflix/BBC: narasi puitis dramatis, kalimat mengalir, diksi kaya, suasana sakral, sudut pandang orang ketiga tenang',
     humor: 'HUMOR — gaya Kurzgesagt komedi: analogi absurd, personifikasi, punchline lucu, sarkasme cerdas, meme-friendly, tetap edukatif',
     cerita: 'CERITA NARATIF — storytelling: alur dengan karakter, konflik, emosi, cliffhanger, pembaca masuk ke cerita, POV konsisten',
+    motivasi: 'MOTIVASI RELATABLE — gaya Satu Persen: hangat, reflektif, memvalidasi perasaan. Gunakan "Kamu" dan "Kita". DILARANG menyebut istilah medis/hormon. Fokus pada EMPATI dan REFRAME.',
     investigatif: 'INVESTIGATIF — gaya Johnny Harris: pertanyaan tajam, data statistik, analisis mendalam, "tapi ada yang aneh...", bongkar lapisan demi lapisan'
   };
 
