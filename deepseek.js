@@ -112,7 +112,8 @@ STRUKTUR WAJIB SHORTS (MODE MOTIVASI):
 - REFRAME (3-5 scene): Beri kejutan perspektif. WAJIB sebutkan satu konsep psikologi populer (Sunk Cost Fallacy, Impostor Syndrome, Burnout, Overthinking, Quarter-life Crisis, People Pleasing, Locus of Control) dengan bahasa manusiawi. Contoh: "Kamu sedang terjebak Sunk Cost Fallacy: bertahan karena sudah terlanjur rugi."
 - AKSI KECIL (1-2 scene): WAJIB berupa tindakan fisik spesifik (contoh: 'Buka notes HP, tulis 1 pencapaianmu', 'Minum segelas air putih'). DILARANG KERAS memberi afirmasi pasif seperti 'ingat', 'tarik napas', atau 'bersyukur'.
 - CTA: Tanyakan hal reflektif. Jika menyuruh subscribe, gunakan kalimat bridging yang halus.
-- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis.`;
+- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis.
+- VISUAL: Scene tengah DILARANG ada teks besar di gambar. Biarkan visual bersih.`;
 
   const STRUKTUR_MOTIVASI_LONG = `
 STRUKTUR WAJIB LONG (MODE MOTIVASI):
@@ -277,7 +278,7 @@ ATURAN OUTPUT:
 - Bahasa Indonesia untuk: narasi, narasi_tts, visual, tokoh, emosi, sensory_detail, analogy, onscreen_text, broll, mood, visual_metaphor
 - Bahasa Inggris untuk: keyword_video, prompt_image, prompt_video
 - SEO hook_options: WAJIB berisi 3 VARIAN JUDUL ALTERNATIF dengan gaya berbeda: (1) Gaya pertanyaan (curiosity), (2) Gaya shock/fakta mengejutkan, (3) Gaya FOMO/urgensi. Semua max 70 char, Bahasa Indonesia, SEO-friendly. Ini untuk A/B testing di YouTube.
-- TEXT DI DALAM GAMBAR: WAJIB 100% Bahasa Indonesia. TERMASUK istilah teknis panjang (jangan tulis "Default Mode Network" tapi "JARINGAN MODE MELAMUN", jangan "Gut-Brain Axis" tapi "JALUR OTAK-USUS", jangan "Working Memory" tapi "MEMORI KERJA"). YANG BOLEH ENGLISH HANYA akronim universal: DNA, RAM, VR, EEG, AI, WHO. Text maksimal 4 kata, huruf kapital semua. WAJIB tulis di prompt_image dengan format: with bold text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh BENAR: "...with bold text "SINYAL OTAK" on the megaphone...", "...with caption "JARINGAN MODE MELAMUN" at the top...", "...with text "TANDA BAHAYA" in red...". Contoh SALAH: "Default Mode Network", "Cortisol", "Working Memory", "Central Fatigue". Setiap scene WAJIB punya minimal 1 text Indonesia di prompt_image-nya.
+- TEXT DI DALAM GAMBAR: WAJIB 100% Bahasa Indonesia. TERMASUK istilah teknis panjang (jangan tulis "Default Mode Network" tapi "JARINGAN MODE MELAMUN", jangan "Gut-Brain Axis" tapi "JALUR OTAK-USUS", jangan "Working Memory" tapi "MEMORI KERJA"). YANG BOLEH ENGLISH HANYA akronim universal: DNA, RAM, VR, EEG, AI, WHO. Text maksimal 4 kata, huruf kapital semua. WAJIB tulis di prompt_image dengan format: with bold text "KATA INDONESIA" (dalam tanda kutip, jelaskan posisinya). Contoh BENAR: "...with bold text "SINYAL OTAK" on the megaphone...", "...with caption "JARINGAN MODE MELAMUN" at the top...", "...with text "TANDA BAHAYA" in red...". Contoh SALAH: "Default Mode Network", "Cortisol", "Working Memory", "Central Fatigue". ATURAN PENEMPATAN TEKS: HANYA scene pertama (HOOK) dan scene terakhir (CTA) yang WAJIB memiliki teks di prompt_image. Scene tengah (isi/reframe) DILARANG KERAS menambahkan teks besar di prompt_image agar visual tetap bersih untuk subtitle CapCut.
 
 TENTANG PROMPT GAMBAR:
 
