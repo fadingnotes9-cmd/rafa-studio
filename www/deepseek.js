@@ -104,6 +104,24 @@ STRUKTUR WAJIB SHORTS (WAJIB DIPATUHI — beda dari Long):
 4. HINDARI KALIMAT TERPOTONG. Narasi harus mengalir natural kalau dibaca TTS.
 `;
 
+  const STRUKTUR_MOTIVASI_SHORTS = `
+STRUKTUR WAJIB SHORTS (MODE MOTIVASI):
+- HOOK (Scene 1): Validasi perasaan. Contoh: "Kamu pernah ngerasa capek padahal nggak ngapa-ngapain?"
+- EMPATI (2-3 scene): Jelaskan fenomena ini dialami banyak orang.
+- REFRAME (3-5 scene): Beri kejutan perspektif. Contoh: "Ternyata itu bukan tanda kamu lemah..."
+- AKSI KECIL (1-2 scene): Langkah praktis 1 menit. CTA.
+- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis (kortisol, amigdala, dll).`;
+
+  const STRUKTUR_MOTIVASI_LONG = `
+STRUKTUR WAJIB LONG (MODE MOTIVASI):
+- HOOK: Validasi perasaan relatable.
+- INTRO: Empati mendalam.
+- BODY: Bedah psikologi populer / cerita personal. BUKAN buku teks.
+- CLIMAX: Reframe besar. Mengubah cara pandang.
+- REFLEKSI: Tips praktis, penerimaan diri.
+- CTA: Interaksi.
+- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis.`;
+
   const STRUKTUR_LONG = `
 STRUKTUR WAJIB LONG (Auto):
 - Target: 2,5-4,5 menit, 30-55 scene
@@ -413,8 +431,13 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
       if (format === 'Shorts') { prompt += '\n' + STRUKTUR_COMMENTARY_SHORTS; }
       else { prompt += '\n' + COMMENTARY_GUIDE + '\n' + STRUKTUR_COMMENTARY_LONG; }
     } else {
-      if (format === 'Shorts') { prompt += '\n' + STRUKTUR_SHORTS; }
-      else { prompt += '\n' + STRUKTUR_LONG; }
+      if (tone === 'motivasi') {
+        if (format === 'Shorts') { prompt += '\n' + STRUKTUR_MOTIVASI_SHORTS; }
+        else { prompt += '\n' + STRUKTUR_MOTIVASI_LONG; }
+      } else {
+        if (format === 'Shorts') { prompt += '\n' + STRUKTUR_SHORTS; }
+        else { prompt += '\n' + STRUKTUR_LONG; }
+      }
     }
     if (style === 'Stickman') {
       prompt += '\n\n=== KARAKTER STICKMAN — WAJIB KONSISTEN DI SEMUA SCENE ===\n';
@@ -482,9 +505,9 @@ Konteks Tambahan: ${konteks || 'tidak ada'}\nTarget AI: ${targetAI || 'universal
     if (isAuto) {
       prompt += `
 Durasi: AUTO — kamu yang tentukan durasi & jumlah scene paling tepat.
-- Untuk Shorts: target 30-60 detik (6-10 scene)
-- Untuk Long: target 2,5-4,5 menit (30-55 scene)
-- Sesuaikan dengan kedalaman cerita. Jangan mengada-ada, jangan bertele-tele.
+- ATURAN FLEKSIBILITAS SCENE: JANGAN terpaku pada angka 8 scene. Tentukan jumlah scene (bisa 6, 9, 12, atau lebih) yang paling pas agar pesan sampai secara utuh, berbobot, dan bisa bersaing dengan channel besar.
+- Untuk Shorts: total durasi MUTLAK di bawah 58 detik. Sesuaikan jumlah scene dengan kebutuhan cerita.
+- Untuk Long: sesuaikan jumlah scene dengan kedalaman cerita (biasanya 40-70 scene).
 - Pastikan cerita tuntas: ada hook, isi, climax, refleksi, cta.`;
     } else {
       prompt += `
@@ -893,7 +916,7 @@ Balas dengan JSON object berisi SATU scene saja (bukan array):
     if (isLong && isAuto && totalBatches > 1) {
       try {
         if (onProgress) onProgress({ outline: true, batch: 1, totalBatches });
-        outlineData = await generateOutline(opts, 60);
+        outlineData = await generateOutline(opts, 55); // 55 sebagai baseline, AI bisa sesuaikan
         console.log('Outline OK:', outlineData && outlineData.outline ? outlineData.outline.length + ' scene' : 'kosong');
       } catch (e) {
         console.warn('Outline gagal, lanjut tanpa outline:', e.message);
