@@ -106,20 +106,23 @@ STRUKTUR WAJIB SHORTS (WAJIB DIPATUHI — beda dari Long):
 
   const STRUKTUR_MOTIVASI_SHORTS = `
 STRUKTUR WAJIB SHORTS (MODE MOTIVASI):
+- BLACKLIST KATA: DILARANG KERAS menggunakan kata: neuron, glukosa, oksigen, amigdala, kortisol, prefrontal, hormon, sel, jurnal, ilmuwan, penelitian. Ganti dengan kata manusiawi (contoh: 'baterai tubuh', 'alarm otak').
 - HOOK (Scene 1): Validasi perasaan. Contoh: "Kamu pernah ngerasa capek padahal nggak ngapa-ngapain?"
 - EMPATI (2-3 scene): Jelaskan fenomena ini dialami banyak orang.
-- REFRAME (3-5 scene): Beri kejutan perspektif. Contoh: "Ternyata itu bukan tanda kamu lemah..."
-- AKSI KECIL (1-2 scene): Langkah praktis 1 menit. CTA.
-- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis (kortisol, amigdala, dll).`;
+- REFRAME (3-5 scene): Beri kejutan perspektif. WAJIB sebutkan satu konsep psikologi populer (Sunk Cost Fallacy, Impostor Syndrome, Burnout, Overthinking, Quarter-life Crisis, People Pleasing, Locus of Control) dengan bahasa manusiawi. Contoh: "Kamu sedang terjebak Sunk Cost Fallacy: bertahan karena sudah terlanjur rugi."
+- AKSI KECIL (1-2 scene): WAJIB berupa tindakan fisik spesifik (contoh: 'Buka notes HP, tulis 1 pencapaianmu', 'Minum segelas air putih'). DILARANG KERAS memberi afirmasi pasif seperti 'ingat', 'tarik napas', atau 'bersyukur'.
+- CTA: Tanyakan hal reflektif. Jika menyuruh subscribe, gunakan kalimat bridging yang halus.
+- GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis.`;
 
   const STRUKTUR_MOTIVASI_LONG = `
 STRUKTUR WAJIB LONG (MODE MOTIVASI):
+- BLACKLIST KATA: DILARANG KERAS menggunakan kata: neuron, glukosa, oksigen, amigdala, kortisol, prefrontal, hormon, sel, jurnal, ilmuwan, penelitian.
 - HOOK: Validasi perasaan relatable.
 - INTRO: Empati mendalam.
-- BODY: Bedah psikologi populer / cerita personal. BUKAN buku teks.
+- BODY: Bedah psikologi populer / cerita personal. WAJIB sebutkan satu konsep psikologi populer (Sunk Cost Fallacy, Impostor Syndrome, Burnout, Overthinking, Quarter-life Crisis, People Pleasing, Locus of Control) dengan bahasa manusiawi.
 - CLIMAX: Reframe besar. Mengubah cara pandang.
-- REFLEKSI: Tips praktis, penerimaan diri.
-- CTA: Interaksi.
+- REFLEKSI: Tips praktis berupa tindakan fisik spesifik (bukan afirmasi pasif), penerimaan diri.
+- CTA: Interaksi reflektif.
 - GAYA BAHASA: Curhat, hangat. DILARANG menyebut istilah medis.`;
 
   const STRUKTUR_LONG = `
@@ -191,7 +194,7 @@ LAYER 4 — QUALITY CONTROL:
 
   // ============ CHANNEL CTA ============
   const CHANNEL_CTA = {
-    universal: 'CTA generik: like, subscribe, komen. Ringkas, tidak over-branding.',
+    universal: 'CTA diakhiri dengan pertanyaan reflektif murni. Untuk ajakan subscribe, gunakan kalimat bridging hangat tanpa terkesan memohon.',
     visualogi: 'CTA KHAS VISUALOGI: (1) Akhiri dengan DEBATE: pertanyaan kontroversial/opini yang memicu komen, contoh "Menurutmu, hapus memori itu boleh? Komen di bawah!". (2) FOMO halus: "Video lengkapnya di channel, cek sekarang" kalau ada video panjang. HINDARI "follow Visualogi" yang generic. Tone: cerdas, sedikit provokatif, tidak kekanak-kanakan.',
     kokbisa: 'CTA KHAS KOK BISA: edukatif + ngajak mikir. Contoh "Menurutmu gimana? Tulis di komen!". Follow CTA halus: "Subscribe biar kamu makin pintar tiap minggu". Tone: ramah guru, tidak menggurui.',
     kurzgesagt: 'CTA KHAS KURZGESAGT: visual + subscribe. Contoh "Kalau kamu suka animasi kayak gini, subscribe untuk video baru tiap bulan". Tone: santai tapi serius, sedikit filosofis.'
