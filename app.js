@@ -114,6 +114,9 @@
     e.preventDefault();
     if (state.isGenerating) return;
 
+    // PATCH #1: deklarasi sumberData dipindah ke sini (fix TDZ)
+    let sumberData = null;
+
     const modeVal = getRadioValue('mode') || 'storyboard';
     const sumberVal = getRadioValue('sumber') || 'topik';
     const judul = els.judul.value.trim();
@@ -156,7 +159,6 @@
     const angle = (document.getElementById('angle')?.value || '').trim();
 
     // Validasi + kumpulkan sumberData kalau mode komentar
-    let sumberData = null;
     if (mode === 'commentary') {
       if (sumber === 'artikel') {
         const url = (document.getElementById('url-artikel')?.value || '').trim();
