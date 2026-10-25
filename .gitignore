@@ -27,3 +27,7 @@ npm-debug.log*
 *.keystore
 .keystore-*
 rafa-release.keystore
+
+# Backup & patch files (auto-generated)
+*.bak-*
+patch-*.js
