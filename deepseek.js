@@ -874,6 +874,33 @@ Balas dengan JSON object berisi SATU scene saja (bukan array):
     return normalizeScene(sceneData, sceneIdx);
   }
 
+  // ============ VALIDATOR: ENFORCE TONE RULES ============
+  function enforceToneRules(scenes, tone) {
+    if (tone !== 'motivasi') return scenes;
+
+    // Kamus pengganti jargon medis/hormon
+    const replacements = {
+      'kortisol': 'baterai tubuh yang habis',
+      'neuron': 'jaringan pesan di otak',
+      'amigdala': 'alarm bahaya di kepala',
+      'dopamin': 'sinyal bahagia',
+      'hormon': 'sinyal tubuh',
+      'serotonin': 'sinyal mood',
+      'neurotransmitter': 'pesan kimia otak'
+    };
+
+    const regex = new RegExp(Object.keys(replacements).join('|'), 'gi');
+
+    scenes.forEach(s => {
+      const replaceFn = (match) => replacements[match.toLowerCase()] || match;
+      if (s.narasi) s.narasi = s.narasi.replace(regex, replaceFn);
+      if (s.narasi_tts) s.narasi_tts = s.narasi_tts.replace(regex, replaceFn);
+      if (s.visual) s.visual = s.visual.replace(regex, replaceFn);
+    });
+
+    return scenes;
+  }
+
   // ============ GENERATE STORYBOARD ============
   async function generateStoryboard(opts, onProgress) {
     const isAuto = opts.durasi === 'auto';
@@ -992,7 +1019,11 @@ Balas dengan JSON object berisi SATU scene saja (bukan array):
     }
 
     // Recompute timestamps global
-    const fixedScenes = recomputeTimestamps(allScenes);
+    let fixedScenes = recomputeTimestamps(allScenes);
+    
+    // [PATCH #7] Jalankan validasi anti-jargon sebelum output
+    fixedScenes = enforceToneRules(fixedScenes, opts.tone);
+
     // Return object dengan seo (bisa null kalau AI tidak generate)
     return {
       scenes: fixedScenes,
