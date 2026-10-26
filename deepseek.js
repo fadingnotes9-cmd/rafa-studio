@@ -191,7 +191,7 @@ LAYER 3 — PRODUCTION:
 
 LAYER 4 — QUALITY CONTROL:
 - fakta_kunci: angka/tanggal/nama yang HARUS benar untuk verifikasi user, atau "-"
-- sumber_hint: "Al-Quran"/"Hadis sahih"/"buku sejarah"/"jurnal"/"arsip", atau "-"`;
+- sumber_hint: WAJIB diisi spesifik (contoh: "Hadis Riwayat Ahmad", "Jurnal Nature 2023", "Buku Sejarah Indonesia"). DILARANG mengisi "-" jika fakta_kunci berisi angka, tahun, atau nama tokoh.`;
 
   // ============ CHANNEL CTA ============
   const CHANNEL_CTA = {

@@ -767,8 +767,14 @@
       : '';
 
     // Section: fakta kunci
+    // [PATCH #8] Fact Hygiene Layer: Beri peringatan jika fakta kunci tidak punya sumber
+    let sumberTeks = scene.sumber_hint || '-';
+    let sumberBadge = '';
+    if (sumberTeks === '-' || sumberTeks === '') {
+      sumberBadge = ` <span style="color:#ef4444; font-size:11px; font-weight:bold; margin-left: 8px;">⚠️ Perlu Sumber</span>`;
+    }
     const faktaHtml = (scene.fakta_kunci && scene.fakta_kunci !== '-')
-      ? `<div class="scene-fakta"><span class="fakta-label">🔍 Fakta Kunci:</span> ${escapeHtml(scene.fakta_kunci)} <span class="fakta-sumber">(${escapeHtml(scene.sumber_hint || '-')})</span></div>`
+      ? `<div class="scene-fakta"><span class="fakta-label">🔍 Fakta Kunci:</span> ${escapeHtml(scene.fakta_kunci)} <span class="fakta-sumber">(${escapeHtml(sumberTeks)})</span>${sumberBadge}</div>`
       : '';
 
     // Section: production cues
