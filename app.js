@@ -1362,6 +1362,11 @@ ${clip.transkrip_asli}
     const judulLabel = document.getElementById("label-judul");
     const judulInput = document.getElementById("judul");
     const btnGenerate = document.getElementById("btn-generate");
+    const styleEl = document.getElementById("field-style");
+    const toneEl = document.getElementById("field-tone");
+    const chEl = document.getElementById("field-target-channel");
+    const aiEl = document.getElementById("field-target-ai");
+    const modePEl = document.getElementById("field-mode-prompt");
 
     // Reset semua
     if (commentaryEl) commentaryEl.style.display = "none";
@@ -1370,6 +1375,11 @@ ${clip.transkrip_asli}
     if (konteksEl) konteksEl.style.display = "block";
     if (judulField) judulField.style.display = "block";
     if (btnGenerate) btnGenerate.textContent = "🚀 Generate Storyboard";
+    if (styleEl) styleEl.style.display = "block";
+    if (toneEl) toneEl.style.display = "block";
+    if (chEl) chEl.style.display = "block";
+    if (aiEl) aiEl.style.display = "block";
+    if (modePEl) modePEl.style.display = "block";
 
     if (mode === "commentary") {
       if (commentaryEl) commentaryEl.style.display = "block";
@@ -1387,6 +1397,11 @@ ${clip.transkrip_asli}
       if (konteksEl) konteksEl.style.display = "none";
       if (judulField) judulField.style.display = "none";
       if (btnGenerate) btnGenerate.textContent = "✂️ Cari Clip Terbaik";
+      if (styleEl) styleEl.style.display = "none";
+      if (toneEl) toneEl.style.display = "none";
+      if (chEl) chEl.style.display = "none";
+      if (aiEl) aiEl.style.display = "none";
+      if (modePEl) modePEl.style.display = "none";
     } else if (mode === "visualize") {
       if (vizEl) vizEl.style.display = "block";
       if (konteksEl) konteksEl.style.display = "none";
