@@ -203,12 +203,12 @@ LAYER 4 — QUALITY CONTROL:
 
   // ============ TONE NARASI ============
   const TONE_NARASI = {
-    relatable: 'RELATABLE CASUAL — gaya Kok Bisa/Visualogi: bahasa gaul santai, "kamu pernah gak sih...", "nah ini yang terjadi...", relatable, sapaan langsung penonton, humor ringan, hindari jargon',
-    dokumenter: 'DOKUMENTER FORMAL — gaya Netflix/BBC: narasi puitis dramatis, kalimat mengalir, diksi kaya, suasana sakral, sudut pandang orang ketiga tenang',
-    humor: 'HUMOR — gaya Kurzgesagt komedi: analogi absurd, personifikasi, punchline lucu, sarkasme cerdas, meme-friendly, tetap edukatif',
-    cerita: 'CERITA NARATIF — storytelling: alur dengan karakter, konflik, emosi, cliffhanger, pembaca masuk ke cerita, POV konsisten',
-    motivasi: 'MOTIVASI RELATABLE — gaya Satu Persen: hangat, reflektif, memvalidasi perasaan. Gunakan "Kamu" dan "Kita". DILARANG menyebut istilah medis/hormon. Fokus pada EMPATI dan REFRAME.',
-    investigatif: 'INVESTIGATIF — gaya Johnny Harris: pertanyaan tajam, data statistik, analisis mendalam, "tapi ada yang aneh...", bongkar lapisan demi lapisan'
+    relatable: 'RELATABLE CASUAL — gaya Kok Bisa/Visualogi: bahasa gaul santai, sapaan langsung penonton ("kamu pernah gak sih..."), humor ringan, HINDARI jargon medis/akademis. Gunakan analogi sehari-hari yang mudah dicerna.',
+    dokumenter: 'DOKUMENTER FORMAL — gaya Netflix/BBC: narasi puitis dramatis, kalimat mengalir, diksi kaya, suasana sakral, sudut pandang orang ketiga tenang. Gunakan jeda dramatis (titik-titik) untuk membangun tensi.',
+    humor: 'HUMOR — gaya Kurzgesagt komedi: analogi absurd, personifikasi benda mati, punchline lucu, sarkasme cerdas, tetap edukatif. Jangan memaksakan lelucon jika tidak natural.',
+    cerita: 'CERITA NARATIF — storytelling: alur dengan protagonis/antagonis, konflik yang jelas, emosi yang naik-turun, cliffhanger di akhir scene, POV konsisten (orang pertama atau ketiga).',
+    motivasi: 'MOTIVASI RELATABLE — gaya Satu Persen:\n  1. STRUKTUR WAJIB: Validasi (Hook) -> Empati -> Reframe (Twist Psikologis) -> Aksi Fisik (Contoh: "Buka notes HP, tulis 1 pencapaian hari ini").\n  2. BLACKLIST KATA: DILARANG KERAS menyebut "kortisol", "neuron", "amigdala", "dopamin", "hormon". Ganti dengan analogi ("baterai habis", "alarm tubuh").\n  3. KAMUS PSIKOLOGI: Wajib selipkan 1 istilah (Sunk Cost Fallacy, Impostor Syndrome, Burnout, Overthinking) dengan bahasa manusiawi.\n  4. NADA: Hangat, memvalidasi, gunakan kata "Kamu" dan "Kita". Jangan menggurui.',
+    investigatif: 'INVESTIGATIF — gaya Johnny Harris: ajukan pertanyaan tajam di awal, sajikan data statistik, analisis mendalam, ungkap "tapi ada yang aneh...", bongkar lapisan demi lapisan hingga menemukan kesimpulan mengejutkan.'
   };
 
   const COMMENTARY_GUIDE = `
