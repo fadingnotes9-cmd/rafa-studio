@@ -405,7 +405,7 @@ FORMAT JSON:
     return prompt;
   };
 
-  function buildSystemPrompt(genre, judul, mode, tone, format, targetChannel, style) {
+  function buildSystemPrompt(genre, judul, mode, tone, format, targetChannel, style, targetAI) {
     let prompt = `Kamu adalah penulis skenario video YouTube profesional kelas dunia, spesialis konten edukasi (sejarah, agama, sains, politik, ekonomi). Karyamu setara dengan Kurzgesagt, Johnny Harris, Kok Bisa, Neo Japan.
 
 TUGAS:
@@ -424,7 +424,8 @@ Buat storyboard lengkap berdasarkan judul user. Riset sendiri topiknya, susun kr
     if (isIslam) prompt += '\n' + SAFEGUARD_ISLAM;
 
     const toneDesc = TONE_NARASI[tone] || TONE_NARASI['relatable'];
-    prompt += '\n\n=== TONE NARASI ===\n' + toneDesc + '\n';
+    prompt += '\n\n=== TARGET AI ===\nTarget AI yang dipilih user: ' + (targetAI || 'universal') + '\n';
+  prompt += '\n\n=== TONE NARASI ===\n' + toneDesc + '\n';
     const ctaDesc = CHANNEL_CTA[targetChannel] || CHANNEL_CTA['universal'];
     prompt += '\n\n=== CTA CHANNEL ===\n' + ctaDesc + '\n';
 
@@ -844,7 +845,7 @@ Balas HANYA JSON object.`;
 
   // ============ REGENERATE SINGLE SCENE ============
   async function regenerateScene(opts, sceneIdx, contextScenes) {
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style, opts.targetAI);
     const prev = contextScenes[sceneIdx - 1];
     const cur = contextScenes[sceneIdx];
     const next = contextScenes[sceneIdx + 1];
@@ -911,7 +912,7 @@ Balas dengan JSON object berisi SATU scene saja (bukan array):
       }
     }
 
-    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style);
+    const systemPrompt = buildSystemPrompt(opts.genre, opts.judul, opts.mode, opts.tone, opts.format, opts.targetChannel, opts.style, opts.targetAI);
     const allScenes = [];
     const totalBatches = batches.length;
     let capturedSeo = null;
