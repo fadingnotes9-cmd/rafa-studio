@@ -287,6 +287,7 @@ TENTANG PROMPT GAMBAR:
    - midjourney: base prompt + " --ar 16:9 --style raw --v 6" (--ar 9:16 untuk Shorts)
    - dalle: natural language panjang, naratif. Contoh "A cinematic wide shot showing an ancient Arabian desert at golden hour with a warrior silhouette standing on a sand dune"
    - flux: natural language, tanpa parameter. Contoh "Ancient Arabian desert at golden hour, warrior standing on a dune, cinematic realistic"
+   - sd: base prompt, WAJIB tambahkan format negative prompt di akhir. Contoh: "cinematic wide shot of ancient desert, warrior silhouette, golden hour, [Negative prompt: low quality, worst quality, blurry, text, watermark, signature]"
 
 2. MODE PROMPT (modePrompt):
    - per_scene: Isi "prompt_image" saja. prompts_gambar: []
